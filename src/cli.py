@@ -12,8 +12,10 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.prompt import Prompt, IntPrompt
+from rich.progress import Progress, SpinnerColumn, TextColumn
 import time
 import random
+
 
 from src.youtube_fetcher import fetch_video_metadata, fetch_transcript, extract_playlist_video_urls, extract_video_id
 from src.chunker import chunk_transcript

@@ -1,9 +1,12 @@
 import re
 import logging
+import http.cookiejar
+import requests
 from pathlib import Path
 from typing import List, Tuple, Optional
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 import yt_dlp
+
 
 
 from src.models import VideoMetadata, TranscriptSegment
@@ -88,18 +91,32 @@ def fetch_video_metadata(
 
 
 
-def fetch_transcript(video_id: str, languages: List[str] = None) -> List[TranscriptSegment]:
+def fetch_transcript(
+    video_id: str,
+    languages: List[str] = None,
+    cookie_file: Optional[str] = "cookies.txt"
+) -> List[TranscriptSegment]:
     """
     Fetch subtitles/captions with timestamp details using youtube-transcript-api.
     
-    Supports both youtube-transcript-api v1.x and v0.x API interfaces.
+    Supports authentication cookies from cookie_file (e.g. cookies.txt).
     """
     if languages is None:
         languages = ['en', 'en-US', 'en-GB', 'en-CA', 'en-AU']
 
     segments = []
     try:
-        api = YouTubeTranscriptApi()
+        session = requests.Session()
+        if cookie_file and Path(cookie_file).exists():
+            try:
+                cookie_jar = http.cookiejar.MozillaCookieJar(cookie_file)
+                cookie_jar.load(ignore_discard=True, ignore_expires=True)
+                session.cookies = cookie_jar
+                logger.info(f"Loaded authentication cookies into transcript fetcher from: {cookie_file}")
+            except Exception as c_err:
+                logger.warning(f"Could not load cookie file '{cookie_file}': {c_err}")
+
+        api = YouTubeTranscriptApi(http_client=session)
         # Primary method: api.fetch
         if hasattr(api, 'fetch'):
             try:
@@ -116,6 +133,7 @@ def fetch_transcript(video_id: str, languages: List[str] = None) -> List[Transcr
                     return segments
             except Exception as e:
                 logger.info(f"api.fetch failed for {video_id}, trying api.list: {e}")
+
 
         # Secondary method: api.list
         if hasattr(api, 'list'):

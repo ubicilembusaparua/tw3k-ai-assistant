@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Total War: Three Kingdoms - YouTube RAG Dataset Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-card: #181c27;
+            --bg-input: #212636;
+            --border-color: #2e354a;
+            --accent-gold: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f1117 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            background: linear-gradient(90deg, var(--accent-gold), #fef08a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.2rem;
+        }
+
+        .container {
+            max-width: 1300px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.4rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s ease, filter 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.2rem;
+        }
+
+        .results-container {
+            max-height: 480px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .results-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .results-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .chunk-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .chunk-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .chunk-header a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        .chunk-header a:hover {
+            text-decoration: underline;
+        }
+
+        .chunk-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #d1d5db;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-gold);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-msg {
+            margin-top: 1rem;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .status-msg.success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+        .status-msg.error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>Total War: Three Kingdoms - RAG Dataset Studio</h1>
+            <p>Convert YouTube Videos & Playlists into RAG Datasets (SQLite, JSON, CSV)</p>
+        </div>
+        <div class="btn-group">
+            <a href="/api/export/json" class="btn btn-secondary" download>Export JSON</a>
+            <a href="/api/export/jsonl" class="btn btn-secondary" download>Export JSONL</a>
+            <a href="/api/export/csv" class="btn btn-secondary" download>Export CSV</a>
+        </div>
+    </header>
+
+    <div style="max-width: 1300px; margin: 1.5rem auto 0; padding: 0 1.5rem;" class="full-width">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-number" id="stat-videos">0</div>
+                <div class="stat-label">Videos</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="stat-chunks">0</div>
+                <div class="stat-label">RAG Chunks</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="stat-words">0</div>
+                <div class="stat-label">Total Words</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="stat-avg">0</div>
+                <div class="stat-label">Avg Chunk Chars</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Ingest Section -->
+        <div class="card">
+            <h2>📥 Ingest YouTube Video or Playlist</h2>
+            <form id="ingest-form">
+                <div class="form-group">
+                    <label for="url">YouTube URL or Video ID</label>
+                    <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="chunk-size">Target Chunk Size (Chars)</label>
+                        <input type="number" id="chunk-size" value="500" min="100" max="2000">
+                    </div>
+                    <div class="form-group">
+                        <label for="chunk-overlap">Overlap (Chars)</label>
+                        <input type="number" id="chunk-overlap" value="100" min="0" max="500">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%;" id="submit-btn">
+                    🚀 Extract & Process Dataset
+                </button>
+            </form>
+            <div id="status-box" class="status-msg"></div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="card">
+            <h2>🔍 SQLite Full-Text Search (RAG Test)</h2>
+            <div class="form-group">
+                <label for="search-query">Search Keywords (e.g. "Han dynasty", "cavalry", "economy")</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="search-query" placeholder="Type query to test retrieval...">
+                    <button class="btn" onclick="performSearch()">Search</button>
+                </div>
+            </div>
+
+            <div class="results-container" id="search-results">
+                <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    No search performed yet. Process videos or search keywords to test retrieval.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('stat-videos').innerText = data.total_videos;
+                document.getElementById('stat-chunks').innerText = data.total_chunks;
+                document.getElementById('stat-words').innerText = data.total_words.toLocaleString();
+                document.getElementById('stat-avg').innerText = data.avg_chunk_chars;
+            } catch (err) {
+                console.error("Failed loading stats:", err);
+            }
+        }
+
+        document.getElementById('ingest-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const statusBox = document.getElementById('status-box');
+            const url = document.getElementById('url').value;
+            const chunkSize = parseInt(document.getElementById('chunk-size').value);
+            const chunkOverlap = parseInt(document.getElementById('chunk-overlap').value);
+
+            btn.disabled = true;
+            btn.innerText = "⏳ Processing Video & Transcripts...";
+            statusBox.style.display = "none";
+
+            try {
+                const res = await fetch('/api/process', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        url: url,
+                        chunk_size: chunkSize,
+                        chunk_overlap: chunkOverlap
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Processing failed");
+
+                statusBox.className = "status-msg success";
+                statusBox.innerText = `✓ ${data.message} (${data.chunks_count} chunks generated)`;
+                statusBox.style.display = "block";
+
+                loadStats();
+                performSearch(); // Refresh search view
+            } catch (err) {
+                statusBox.className = "status-msg error";
+                statusBox.innerText = `✖ Error: ${err.message}`;
+                statusBox.style.display = "block";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "🚀 Extract & Process Dataset";
+            }
+        });
+
+        async function performSearch() {
+            const query = document.getElementById('search-query').value.trim();
+            const container = document.getElementById('search-results');
+
+            try {
+                const url = query ? `/api/search?q=${encodeURIComponent(query)}` : `/api/chunks?limit=20`;
+                const res = await fetch(url);
+                const results = await res.json();
+
+                if (results.length === 0) {
+                    container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No matching chunks found.</div>`;
+                    return;
+                }
+
+                container.innerHTML = results.map(r => `
+                    <div class="chunk-card">
+                        <div class="chunk-header">
+                            <span><span class="badge">${r.chunk_id}</span> <strong>${r.video_title}</strong> (${r.formatted_time})</span>
+                            <a href="${r.timestamp_link}" target="_blank">🔗 Watch @ ${r.start_time}s</a>
+                        </div>
+                        <div class="chunk-text">${r.text}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error("Search failed:", err);
+            }
+        }
+
+        // Initial Load
+        loadStats();
+        performSearch();
+    </script>
+</body>
+</html>

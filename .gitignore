@@ -1,0 +1,25 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Databases & Datasets
+*.db
+*.json
+*.jsonl
+*.csv
+!dataset_example.json
+
+# Local Cookies & Credentials
+cookies.txt
+
+# IDE & Logs
+.idea/
+.vscode/
+*.log

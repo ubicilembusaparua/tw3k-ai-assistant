@@ -6,3 +6,4 @@ Rules
 
 - Dependencies are added in `pyproject.toml`. Do not add one without
   asking
+- commit every changes made.

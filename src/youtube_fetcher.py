@@ -50,8 +50,9 @@ def fetch_video_metadata(
         'skip_download': True,
         'quiet': True,
         'no_warnings': True,
-        'extract_flat': False
+        'format': 'worst'
     }
+
 
     # Apply cookie file if exists
     if cookie_file and Path(cookie_file).exists():
@@ -68,12 +69,13 @@ def fetch_video_metadata(
                 video_id=video_id,
                 title=info.get('title', f"YouTube Video ({video_id})"),
                 url=url,
-                channel=info.get('uploader', info.get('channel', 'Unknown Channel')),
+                channel=info.get('uploader', info.get('channel', info.get('uploader_id', 'Unknown Channel'))),
                 upload_date=info.get('upload_date'),
                 duration=info.get('duration', 0),
                 description=info.get('description', ''),
                 language=info.get('language', 'en')
             )
+
     except Exception as e:
         logger.warning(f"yt-dlp metadata fetch notice for {video_id}: {e}. Using extracted fallback metadata.")
         return VideoMetadata(

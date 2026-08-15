@@ -51,3 +51,23 @@ Use `.env.example` as the complete list of application settings. Defaults allow
 validation and local retrieval to start without credentials. Answer generation
 requires `OPENAI_API_KEY`; a missing key is reported separately from an
 unreachable Qdrant service.
+
+## Validate and index transcripts
+
+Validate a JSONL file without loading models or contacting Qdrant:
+
+```powershell
+uv run tw3k-index tw3k_dataset.jsonl --validate-only
+```
+
+With Qdrant running, build or update the local index:
+
+```powershell
+uv run tw3k-index tw3k_dataset.jsonl
+```
+
+Records are preflighted before any write. Embeddings and Qdrant upserts are
+streamed in bounded batches, and stable point IDs make reruns update existing
+chunks instead of duplicating them. Each command prints validated, embedded,
+upserted, skipped, and failed counts as JSON and exits nonzero if indexing is
+incomplete.

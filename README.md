@@ -89,3 +89,18 @@ sufficient evidence. The application supplies its own `SOURCE_N` identifiers,
 requires every substantive claim to cite them, rejects unknown citation IDs, and
 maps accepted citations to the corresponding exact YouTube timestamp. OpenAI
 and Qdrant failures are surfaced as service errors rather than answers.
+
+## Run the local web app
+
+Set `OPENAI_API_KEY` in the process environment, ensure Qdrant is running and
+indexed, then launch:
+
+```powershell
+uv run uvicorn src.web:app --reload
+```
+
+Open `http://127.0.0.1:8000`. The readiness endpoint is
+`http://127.0.0.1:8000/api/readiness`. It reports the application, Qdrant and
+index count, cached local models, and OpenAI configuration independently.
+Model loading and all Qdrant/OpenAI network calls occur in the service layer;
+the application does not hold a database transaction around that work.

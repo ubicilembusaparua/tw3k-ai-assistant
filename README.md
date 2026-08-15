@@ -21,5 +21,33 @@ dataset.
    uv run pytest
    ```
 
-Qdrant and application commands are documented as their implementation phases
-are added.
+## Local Qdrant
+
+Start Qdrant in the background with one command:
+
+```powershell
+docker compose up -d qdrant
+```
+
+The service listens at `http://localhost:6333`; its dashboard is available at
+`http://localhost:6333/dashboard`. The Compose health check probes the local
+REST port, and the `qdrant_data` named volume keeps indexed vectors across
+container restarts and ordinary `docker compose down` operations.
+
+Inspect status and logs:
+
+```powershell
+docker compose ps qdrant
+docker compose logs qdrant
+```
+
+Stop the service without deleting indexed data:
+
+```powershell
+docker compose down
+```
+
+Use `.env.example` as the complete list of application settings. Defaults allow
+validation and local retrieval to start without credentials. Answer generation
+requires `OPENAI_API_KEY`; a missing key is reported separately from an
+unreachable Qdrant service.

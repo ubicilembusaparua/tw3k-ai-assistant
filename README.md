@@ -83,3 +83,9 @@ uv run tw3k-retrieve "How should I manage food in the early game?"
 The diagnostic JSON includes dense-retrieval and reranking scores, selected
 transcript text, and exact timestamp links. Empty or irrelevant results return a
 deterministic `insufficient_evidence` status and a nonzero exit code.
+
+Answer generation uses the configured `OPENAI_MODEL` only after retrieval finds
+sufficient evidence. The application supplies its own `SOURCE_N` identifiers,
+requires every substantive claim to cite them, rejects unknown citation IDs, and
+maps accepted citations to the corresponding exact YouTube timestamp. OpenAI
+and Qdrant failures are surfaced as service errors rather than answers.

@@ -71,3 +71,15 @@ streamed in bounded batches, and stable point IDs make reruns update existing
 chunks instead of duplicating them. Each command prints validated, embedded,
 upserted, skipped, and failed counts as JSON and exits nonzero if indexing is
 incomplete.
+
+## Inspect retrieval
+
+Retrieve and rerank evidence without making an OpenAI request:
+
+```powershell
+uv run tw3k-retrieve "How should I manage food in the early game?"
+```
+
+The diagnostic JSON includes dense-retrieval and reranking scores, selected
+transcript text, and exact timestamp links. Empty or irrelevant results return a
+deterministic `insufficient_evidence` status and a nonzero exit code.

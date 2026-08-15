@@ -9,3 +9,4 @@ qdrant_storage/
 htmlcov/
 /dataset_builder/
 /tw3k_dataset.jsonl
+/AGENTS.md

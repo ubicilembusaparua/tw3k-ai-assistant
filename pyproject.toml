@@ -1,18 +1,17 @@
 [project]
 name = "tw3k-ai-assistant"
 version = "0.1.0"
-description = "Total War: Three Kingdoms YouTube RAG Dataset Builder"
+description = "Local retrieval-augmented assistant for TW3K transcript guidance"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "youtube-transcript-api>=1.2.4",
-    "yt-dlp>=2026.7.4",
-    "rich>=15.0.0",
     "fastapi>=0.141.1",
-    "uvicorn>=0.52.1",
-    "pydantic>=2.13.4",
-    "pandas>=3.0.5",
     "jinja2>=3.1.6",
+    "openai>=1.0.0",
+    "pydantic>=2.13.4",
+    "qdrant-client>=1.14.0",
+    "sentence-transformers>=5.0.0",
+    "uvicorn>=0.52.1",
 ]
 
 [build-system]
@@ -27,3 +26,8 @@ dev = [
     "pytest>=8.0.0",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires an explicitly configured real Qdrant service",
+]

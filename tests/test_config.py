@@ -16,8 +16,10 @@ def test_settings_have_documented_local_defaults() -> None:
     assert settings.qdrant_url == "http://localhost:6333"
     assert settings.qdrant_collection == "tw3k_transcripts"
     assert settings.embedding_dimensions == 384
-    assert settings.retrieval_candidate_count == 20
-    assert settings.final_context_count == 8
+    assert settings.retrieval_candidate_count == 10
+    assert settings.final_context_count == 6
+    assert settings.neighbor_chunk_expansion == 1
+    assert settings.overlap_threshold == 0.75
 
 
 @pytest.mark.parametrize(
@@ -26,8 +28,9 @@ def test_settings_have_documented_local_defaults() -> None:
         ("QDRANT_URL", "localhost:6333", "absolute"),
         ("RETRIEVAL_CANDIDATE_COUNT", "zero", "integer"),
         ("FINAL_CONTEXT_COUNT", "0", "greater than zero"),
-        ("RELEVANCE_THRESHOLD", "1.1", "between 0 and 1"),
+        ("RELEVANCE_THRESHOLD", "21", "between -20.0 and 20.0"),
         ("QDRANT_COLLECTION", "", "must not be empty"),
+        ("NEIGHBOR_CHUNK_EXPANSION", "-1", "zero or greater"),
     ],
 )
 def test_invalid_configuration_has_clear_error(

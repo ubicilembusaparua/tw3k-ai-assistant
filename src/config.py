@@ -26,14 +26,17 @@ class QdrantHealthClient(Protocol):
     def get_collections(self) -> object: ...
 
 
-def _positive_int(env: Mapping[str, str], name: str, default: int) -> int:
+def _positive_int(
+    env: Mapping[str, str], name: str, default: int, *, allow_zero: bool = False
+) -> int:
     raw_value = env.get(name, str(default)).strip()
     try:
         value = int(raw_value)
     except ValueError as error:
         raise ConfigurationError(f"{name} must be an integer, got {raw_value!r}") from error
-    if value <= 0:
-        raise ConfigurationError(f"{name} must be greater than zero")
+    if value < 0 or (value == 0 and not allow_zero):
+        requirement = "zero or greater" if allow_zero else "greater than zero"
+        raise ConfigurationError(f"{name} must be {requirement}")
     return value
 
 
@@ -45,6 +48,19 @@ def _unit_float(env: Mapping[str, str], name: str, default: float) -> float:
         raise ConfigurationError(f"{name} must be a number, got {raw_value!r}") from error
     if not 0 <= value <= 1:
         raise ConfigurationError(f"{name} must be between 0 and 1")
+    return value
+
+
+def _bounded_float(
+    env: Mapping[str, str], name: str, default: float, minimum: float, maximum: float
+) -> float:
+    raw_value = env.get(name, str(default)).strip()
+    try:
+        value = float(raw_value)
+    except ValueError as error:
+        raise ConfigurationError(f"{name} must be a number, got {raw_value!r}") from error
+    if not minimum <= value <= maximum:
+        raise ConfigurationError(f"{name} must be between {minimum} and {maximum}")
     return value
 
 
@@ -63,6 +79,8 @@ class Settings:
     final_context_count: int
     context_token_budget: int
     relevance_threshold: float
+    neighbor_chunk_expansion: int
+    overlap_threshold: float
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
@@ -82,11 +100,17 @@ class Settings:
                 "QDRANT_COLLECTION", "tw3k_transcripts"
             ).strip(),
             retrieval_candidate_count=_positive_int(
-                values, "RETRIEVAL_CANDIDATE_COUNT", 20
+                values, "RETRIEVAL_CANDIDATE_COUNT", 10
             ),
-            final_context_count=_positive_int(values, "FINAL_CONTEXT_COUNT", 8),
-            context_token_budget=_positive_int(values, "CONTEXT_TOKEN_BUDGET", 4000),
-            relevance_threshold=_unit_float(values, "RELEVANCE_THRESHOLD", 0.35),
+            final_context_count=_positive_int(values, "FINAL_CONTEXT_COUNT", 6),
+            context_token_budget=_positive_int(values, "CONTEXT_TOKEN_BUDGET", 3000),
+            relevance_threshold=_bounded_float(
+                values, "RELEVANCE_THRESHOLD", 0.35, -20.0, 20.0
+            ),
+            neighbor_chunk_expansion=_positive_int(
+                values, "NEIGHBOR_CHUNK_EXPANSION", 1, allow_zero=True
+            ),
+            overlap_threshold=_unit_float(values, "OVERLAP_THRESHOLD", 0.75),
         )
         settings._validate()
         return settings

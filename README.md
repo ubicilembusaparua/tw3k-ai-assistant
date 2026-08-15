@@ -104,3 +104,31 @@ Open `http://127.0.0.1:8000`. The readiness endpoint is
 index count, cached local models, and OpenAI configuration independently.
 Model loading and all Qdrant/OpenAI network calls occur in the service layer;
 the application does not hold a database transaction around that work.
+
+## Retrieval evaluation and integration tests
+
+Run the deterministic default suite (no Docker or API key required):
+
+```powershell
+uv run pytest
+```
+
+With local Qdrant running, explicitly opt into the real create/upsert/update/search
+test:
+
+```powershell
+$env:RUN_QDRANT_INTEGRATION = "1"
+uv run pytest -m integration tests/integration
+```
+
+Run all retrieval tuning profiles across the 40-question evaluation set:
+
+```powershell
+uv run tw3k-evaluate
+```
+
+This writes `evaluation/results.json`. The recorded methodology treats
+groundedness as a retrieval-context proxy: an expected source is selected and
+its text contains a curated answer term. It never makes an OpenAI request.
+The selected defaults and profile comparison are summarized in
+`evaluation/README.md`.

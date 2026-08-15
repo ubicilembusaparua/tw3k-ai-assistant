@@ -17,6 +17,7 @@ dependencies = [
 [project.scripts]
 tw3k-index = "src.indexer:main"
 tw3k-retrieve = "src.retrieval:main"
+tw3k-evaluate = "src.evaluation:main"
 
 [build-system]
 requires = ["hatchling"]

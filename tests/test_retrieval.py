@@ -76,9 +76,9 @@ def test_retrieval_uses_configured_candidate_count_and_preserves_scores() -> Non
 
     assert result.status == READY
     assert embedder.questions == ["How should I manage food?"]
-    assert client.calls[0]["limit"] == 20
+    assert client.calls[0]["limit"] == 10
     assert client.calls[0]["with_payload"] is True
-    assert reranker.pairs[0][1].startswith("Build food")
+    assert reranker.pairs[0][1].startswith("Economy basics\nBuild food")
     assert result.passages[0].retrieval_score == pytest.approx(0.9)
     assert result.passages[0].rerank_score == pytest.approx(0.95)
 

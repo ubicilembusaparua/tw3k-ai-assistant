@@ -192,7 +192,10 @@ def select_context(candidates: Sequence[Passage], settings: Settings) -> tuple[P
                 abs(candidate_index - existing_index) == 1
                 for existing_index in existing.chunk_indexes
             )
-            if adjacent and len(existing.chunk_indexes) == 1:
+            if (
+                adjacent
+                and len(existing.chunk_indexes) <= settings.neighbor_chunk_expansion
+            ):
                 combined = _merge_adjacent(existing, candidate)
                 new_total = used_tokens - existing.estimated_tokens + combined.estimated_tokens
                 if new_total <= settings.context_token_budget:
@@ -200,7 +203,11 @@ def select_context(candidates: Sequence[Passage], settings: Settings) -> tuple[P
                     used_tokens = new_total
                 merged = True
                 break
-            if same_video and overlap_ratio(candidate.text, existing.text) >= 0.75:
+            if (
+                same_video
+                and overlap_ratio(candidate.text, existing.text)
+                >= settings.overlap_threshold
+            ):
                 merged = True
                 break
         if merged:
@@ -269,7 +276,13 @@ def retrieve(
     reranker = reranker_factory(settings)
     rerank_scores = _scores(
         reranker.predict(
-            [(normalized_question, record.text) for record, _ in validated],
+            [
+                (
+                    normalized_question,
+                    f"{record.data['video_title']}\n{record.text}",
+                )
+                for record, _ in validated
+            ],
             show_progress_bar=False,
         ),
         len(validated),

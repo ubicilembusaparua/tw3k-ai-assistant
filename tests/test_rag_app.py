@@ -1,8 +1,11 @@
 from unittest.mock import MagicMock
+from types import SimpleNamespace
+
 import pytest
 
-from rag_app import RAGBase, calculate_rag_cost
+from rag_app import RAGBase
 from src.schema import DocumentChunk, SearchResult
+from utils import calculate_rag_cost
 
 
 def test_rag_base_search_with_hybrid_retriever():
@@ -119,3 +122,24 @@ def test_calculate_rag_cost_supports_json_and_cached_input():
     assert cost["cached_input_tokens"] == 200
     assert cost["uncached_input_tokens"] == 800
     assert cost["total_cost_usd"] == pytest.approx(0.009615)
+
+
+def test_calculate_rag_cost_accepts_openai_response_object():
+    response = SimpleNamespace(
+        model="gpt-5.4-mini-2026-03-17",
+        usage=SimpleNamespace(
+            input_tokens=2_065,
+            input_tokens_details=SimpleNamespace(cached_tokens=1_792),
+            output_tokens=421,
+            total_tokens=2_486,
+        ),
+    )
+
+    cost = calculate_rag_cost(response)
+
+    assert cost["model"] == "gpt-5.4-mini-2026-03-17"
+    assert cost["input_tokens"] == 2_065
+    assert cost["cached_input_tokens"] == 1_792
+    assert cost["output_tokens"] == 421
+    assert cost["total_tokens"] == 2_486
+    assert cost["total_cost_usd"] == pytest.approx(0.00223365)

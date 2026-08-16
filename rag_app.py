@@ -8,8 +8,6 @@ the complete retrieval flow through :class:`RAGBase`.
 
 from __future__ import annotations
 
-import json
-from collections.abc import Mapping
 from typing import Any, List, Optional, Sequence
 
 from src.bm25_retriever import BM25Retriever
@@ -17,103 +15,10 @@ from src.hybrid_retriever import HybridRetriever
 from src.qdrant_retriever import QdrantRetriever
 from src.reranker import Reranker
 from src.schema import SearchResult
+from utils import calculate_rag_cost
 
 
 DEFAULT_FETCH_K = 20
-
-GPT_54_MINI_PRICING_USD_PER_MILLION = {
-    "input": 0.75,
-    "cached_input": 0.075,
-    "output": 4.50,
-}
-
-
-def calculate_rag_cost(
-    response_json: Mapping[str, Any] | str,
-    model: str = "gpt-5.4-mini",
-) -> dict[str, Any]:
-    """Calculate the OpenAI cost for one RAG response.
-
-    ``response_json`` may be a parsed JSON object or a JSON string.  The
-    function accepts Responses API usage keys (``input_tokens`` and
-    ``output_tokens``) and Chat Completions aliases (``prompt_tokens`` and
-    ``completion_tokens``).
-
-    The returned costs are in USD.  If cached-input usage is present, cached
-    input is charged at the lower cached-input rate; otherwise all input is
-    charged at the standard input rate.
-    """
-
-    if isinstance(response_json, str):
-        response_json = json.loads(response_json)
-    if not isinstance(response_json, Mapping):
-        raise TypeError("response_json must be a JSON object or JSON string.")
-
-    if model != "gpt-5.4-mini" and not model.startswith("gpt-5.4-mini-"):
-        raise ValueError(f"Unsupported pricing model: {model}")
-
-    usage = response_json.get("usage", response_json)
-    if not isinstance(usage, Mapping):
-        raise ValueError("The JSON response must contain a usage object.")
-
-    input_tokens = _read_token_count(usage, "input_tokens", "prompt_tokens")
-    output_tokens = _read_token_count(usage, "output_tokens", "completion_tokens")
-    cached_input_tokens = _read_cached_input_tokens(usage)
-
-    if cached_input_tokens > input_tokens:
-        raise ValueError("cached input tokens cannot exceed total input tokens.")
-
-    uncached_input_tokens = input_tokens - cached_input_tokens
-    input_cost_usd = (
-        uncached_input_tokens * GPT_54_MINI_PRICING_USD_PER_MILLION["input"]
-        + cached_input_tokens * GPT_54_MINI_PRICING_USD_PER_MILLION["cached_input"]
-    ) / 1_000_000
-    output_cost_usd = (
-        output_tokens * GPT_54_MINI_PRICING_USD_PER_MILLION["output"]
-    ) / 1_000_000
-
-    return {
-        "model": model,
-        "input_tokens": input_tokens,
-        "cached_input_tokens": cached_input_tokens,
-        "uncached_input_tokens": uncached_input_tokens,
-        "output_tokens": output_tokens,
-        "total_tokens": usage.get("total_tokens", input_tokens + output_tokens),
-        "input_cost_usd": round(input_cost_usd, 10),
-        "output_cost_usd": round(output_cost_usd, 10),
-        "total_cost_usd": round(input_cost_usd + output_cost_usd, 10),
-    }
-
-
-def _read_token_count(usage: Mapping[str, Any], *keys: str) -> int:
-    for key in keys:
-        value = usage.get(key)
-        if value is not None:
-            try:
-                token_count = int(value)
-            except (TypeError, ValueError) as exc:
-                raise ValueError(f"{key} must be an integer.") from exc
-            if token_count < 0:
-                raise ValueError(f"{key} cannot be negative.")
-            return token_count
-    raise ValueError(f"Missing token usage field; expected one of: {', '.join(keys)}")
-
-
-def _read_cached_input_tokens(usage: Mapping[str, Any]) -> int:
-    direct_value = usage.get("cached_input_tokens")
-    details = usage.get("input_tokens_details") or usage.get("prompt_tokens_details")
-    if direct_value is None and isinstance(details, Mapping):
-        direct_value = details.get("cached_tokens")
-    if direct_value is None:
-        return 0
-
-    try:
-        cached_tokens = int(direct_value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("cached input tokens must be an integer.") from exc
-    if cached_tokens < 0:
-        raise ValueError("cached input tokens cannot be negative.")
-    return cached_tokens
 
 
 INSTRUCTIONS = """

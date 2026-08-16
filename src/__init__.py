@@ -4,6 +4,7 @@ from src.bm25_retriever import BM25Retriever
 from src.embedder import Embedder
 from src.qdrant_retriever import QdrantRetriever
 from src.hybrid_retriever import HybridRetriever
+from src.reranker import Reranker
 from src.evaluation import RagasEvaluator, save_summary_csv
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "Embedder",
     "QdrantRetriever",
     "HybridRetriever",
+    "Reranker",
     "RagasEvaluator",
     "save_summary_csv",
 ]

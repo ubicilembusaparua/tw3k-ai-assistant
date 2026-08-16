@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
-from rag_app import RAGBase
+import pytest
+
+from rag_app import RAGBase, calculate_rag_cost
 from src.schema import DocumentChunk, SearchResult
 
 
@@ -92,3 +94,28 @@ def test_rag_base_search_with_reranker():
     mock_reranker.rerank.assert_called_once_with("strategy", candidate_results, top_k=1)
     assert len(results) == 1
     assert results[0].chunk.id == "2"
+
+
+def test_calculate_rag_cost_from_responses_usage():
+    cost = calculate_rag_cost(
+        {
+            "usage": {
+                "input_tokens": 1_000,
+                "output_tokens": 2_000,
+            }
+        }
+    )
+
+    assert cost["input_cost_usd"] == pytest.approx(0.00075)
+    assert cost["output_cost_usd"] == pytest.approx(0.009)
+    assert cost["total_cost_usd"] == pytest.approx(0.00975)
+
+
+def test_calculate_rag_cost_supports_json_and_cached_input():
+    response_json = '{"usage":{"input_tokens":1000,"output_tokens":2000,"input_tokens_details":{"cached_tokens":200}}}'
+
+    cost = calculate_rag_cost(response_json)
+
+    assert cost["cached_input_tokens"] == 200
+    assert cost["uncached_input_tokens"] == 800
+    assert cost["total_cost_usd"] == pytest.approx(0.009615)

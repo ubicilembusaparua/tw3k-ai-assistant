@@ -14,15 +14,7 @@ class RagasEvaluator:
         self,
         eval_samples: List[Dict[str, Any]],
     ) -> Dataset:
-        """Formats query samples and retrieved search results into a Ragas Dataset.
-
-        Expected sample structure:
-        {
-            "question": str,
-            "retrieved_results": List[SearchResult],
-            "ground_truth": str or List[str]
-        }
-        """
+        """Formats query samples and retrieved search results into a Ragas Dataset."""
         data = {
             "question": [],
             "contexts": [],
@@ -49,7 +41,7 @@ class RagasEvaluator:
         eval_samples: List[Dict[str, Any]],
         retriever_name: str = "Retriever",
     ) -> Dict[str, Any]:
-        """Runs evaluation on formatted dataset samples, evaluating each retrieved context individually."""
+        """Runs evaluation on formatted dataset samples, calculating Context Precision & Recall."""
         dataset = self.format_dataset(eval_samples)
 
         # Calculate detailed per-context evaluation for each retrieved item across samples
@@ -80,7 +72,7 @@ class RagasEvaluator:
                 "context_evaluations": context_evals,
             })
 
-        # Check if OpenAI API key or custom LLM endpoint is set for Ragas execution
+        # Check if OpenAI API key is set for Ragas execution
         if os.getenv("OPENAI_API_KEY"):
             try:
                 from ragas import evaluate
@@ -92,7 +84,7 @@ class RagasEvaluator:
                     "retriever": retriever_name,
                     "scores": dict(results),
                     "sample_details": per_sample_details,
-                    "status": "success",
+                    "status": "ragas_llm",
                 }
             except Exception as e:
                 return self._fallback_evaluate(dataset, retriever_name, per_sample_details, error_msg=str(e))
@@ -106,7 +98,7 @@ class RagasEvaluator:
         per_sample_details: List[Dict[str, Any]],
         error_msg: str,
     ) -> Dict[str, Any]:
-        """Calculates deterministic context precision and recall scores per query and top-K context list."""
+        """Calculates exact Context Precision @ K (rank-weighted precision) and Context Recall @ K (ground-truth coverage)."""
         precision_scores = []
         recall_scores = []
 
@@ -125,16 +117,34 @@ class RagasEvaluator:
                 recall_scores.append(1.0)
                 continue
 
-            top_ctx = contexts[0].lower() if contexts else ""
-            found_top = sum(1 for w in gt_words if w in top_ctx)
-            precision = found_top / len(gt_words)
+            # Determine binary relevance v_k for each rank k
+            relevances = []
+            for ctx in contexts:
+                ctx_lower = ctx.lower()
+                matches = sum(1 for w in gt_words if w in ctx_lower)
+                is_rel = 1 if (matches / len(gt_words)) >= 0.12 or matches >= 2 else 0
+                relevances.append(is_rel)
 
+            # Context Precision Formula: sum(Precision@k * v_k) / total_relevant
+            num_rel = sum(relevances)
+            if num_rel == 0:
+                prec = 0.0
+            else:
+                running_rel = 0
+                precision_sum = 0.0
+                for k, v in enumerate(relevances, start=1):
+                    if v == 1:
+                        running_rel += 1
+                        precision_sum += (running_rel / k)
+                prec = precision_sum / num_rel
+
+            # Context Recall Formula: fraction of GT words covered across all top-K contexts
             all_ctx = " ".join(contexts).lower()
             found_all = sum(1 for w in gt_words if w in all_ctx)
-            recall = found_all / len(gt_words)
+            rec = found_all / len(gt_words)
 
-            precision_scores.append(precision)
-            recall_scores.append(recall)
+            precision_scores.append(prec)
+            recall_scores.append(rec)
 
         avg_precision = sum(precision_scores) / max(len(precision_scores), 1)
         avg_recall = sum(recall_scores) / max(len(recall_scores), 1)
@@ -146,6 +156,6 @@ class RagasEvaluator:
                 "context_recall": round(avg_recall, 4),
             },
             "sample_details": per_sample_details,
-            "status": "offline_heuristic",
+            "status": "deterministic_heuristic",
             "info": error_msg,
         }

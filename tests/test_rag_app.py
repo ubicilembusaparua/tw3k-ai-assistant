@@ -49,18 +49,15 @@ def test_rag_base_build_context_dict():
     app = RAGBase(index=None)
     dict_results = [
         {
-            "name": "Ethiopia Yirgacheffe",
-            "origin_1": "Ethiopia",
-            "origin_2": "",
-            "desc_1": "Jasmine and citrus notes.",
-            "desc_2": "Bright acidity.",
-            "desc_3": "",
-            "roast": "Light",
-            "rating": "94",
-            "loc_country": "USA",
+            "text": "Position archers on the high ground to maximize range and damage.",
+            "video_title": "Total War Three Kingdoms Battle Guide",
+            "channel": "Serious Trivia",
+            "formatted_time": "05:12",
         }
     ]
     context = app.build_context(dict_results)
     assert "--- Document 1 ---" in context
-    assert "Coffee Name: Ethiopia Yirgacheffe" in context
-    assert "Roast Level: Light" in context
+    assert "Content: Position archers on the high ground to maximize range and damage." in context
+    assert "Video Title: Total War Three Kingdoms Battle Guide" in context
+    assert "Channel: Serious Trivia" in context
+    assert "Timestamp: 05:12" in context

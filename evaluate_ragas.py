@@ -1,7 +1,9 @@
-"""Fast Ragas Evaluation Script executing 35-query benchmark from results/eval_dataset.json and writing results/search_evals.csv."""
+"""Fast Ragas Evaluation Script reading human-evaluated ground data (results/eval_dataset.csv or .json) and saving results/search_evals.csv."""
 
+import csv
 import json
 from pathlib import Path
+from typing import Any, Dict, List
 from src.dataset import load_dataset
 from src.bm25_retriever import BM25Retriever
 from src.qdrant_retriever import QdrantRetriever
@@ -9,12 +11,34 @@ from src.hybrid_retriever import HybridRetriever
 from src.evaluation import RagasEvaluator, save_summary_csv
 
 
+def load_eval_benchmark() -> List[Dict[str, Any]]:
+    """Loads benchmark evaluation samples from results/eval_dataset.csv or results/eval_dataset.json."""
+    csv_file = Path("results/eval_dataset.csv")
+    json_file = Path("results/eval_dataset.json")
+
+    if csv_file.exists():
+        print(f"Loading human-evaluated benchmark queries from {csv_file.resolve()}...")
+        with open(csv_file, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            return list(reader)
+    elif json_file.exists():
+        print(f"Loading benchmark queries from {json_file.resolve()}...")
+        with open(json_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    else:
+        print("Benchmark file not found. Generating default 35-query dataset...")
+        from generate_eval_dataset import main as gen_main
+        gen_main()
+        with open(json_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+
 def main():
     print("==================================================")
-    print(" Ragas Evaluation - 35-Query Benchmark Suite")
+    print(" Ragas Evaluation - Ground Data Benchmark Suite")
     print("==================================================\n")
 
-    # 1. Load full transcript dataset
+    # 1. Load transcript dataset for retrievers
     chunks = load_dataset("tw3k_dataset.jsonl")
     print(f"Loaded {len(chunks)} document chunks from tw3k_dataset.jsonl.\n")
 
@@ -33,18 +57,9 @@ def main():
     print("Building Hybrid RRF Retriever...")
     hybrid = HybridRetriever(bm25, qdrant, rrf_k=60)
 
-    # 3. Load benchmark evaluation dataset from results/eval_dataset.json
-    eval_file = Path("results/eval_dataset.json")
-    if eval_file.exists():
-        with open(eval_file, "r", encoding="utf-8") as f:
-            eval_queries = json.load(f)
-        print(f"\nLoaded {len(eval_queries)} benchmark queries from {eval_file}.")
-    else:
-        print("\nBenchmark file not found. Generating default benchmark...")
-        from generate_eval_dataset import main as gen_main
-        gen_main()
-        with open(eval_file, "r", encoding="utf-8") as f:
-            eval_queries = json.load(f)
+    # 3. Load human-evaluated benchmark dataset
+    eval_queries = load_eval_benchmark()
+    print(f"Successfully loaded {len(eval_queries)} benchmark queries for evaluation.")
 
     # 4. Collect top-10 retrieved contexts for each query across all 3 retrievers
     top_k_eval = 10

@@ -1,5 +1,6 @@
-"""Generates a comprehensive 35-query benchmark evaluation dataset (results/eval_dataset.json) derived from tw3k_dataset.jsonl."""
+"""Generates a 35-query benchmark evaluation dataset (results/eval_dataset.json & results/eval_dataset.csv) for human ground data evaluation."""
 
+import csv
 import json
 from pathlib import Path
 from src.dataset import load_dataset
@@ -13,7 +14,7 @@ def main():
     chunks = load_dataset("tw3k_dataset.jsonl")
     print(f"Loaded {len(chunks)} transcript passages.")
 
-    # Define 35 benchmark evaluation queries with authoritative ground truths mapped from transcript content
+    # 35 benchmark evaluation queries with ground truths mapped from transcript content
     eval_benchmark = [
         {
             "query_id": "query_01",
@@ -229,14 +230,23 @@ def main():
 
     output_dir = Path("results")
     output_dir.mkdir(parents=True, exist_ok=True)
-    file_path = output_dir / "eval_dataset.json"
+    json_path = output_dir / "eval_dataset.json"
+    csv_path = output_dir / "eval_dataset.csv"
 
-    with open(file_path, "w", encoding="utf-8") as f:
+    # Save JSON format
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(eval_benchmark, f, indent=2)
 
-    print(f"SUCCESS: Created 35-query benchmark evaluation dataset at {file_path.resolve()}\n")
-    print(f"Sample Query #1: '{eval_benchmark[0]['question']}'")
-    print(f"Sample Ground Truth: '{eval_benchmark[0]['ground_truth']}'")
+    # Save CSV format for easy human editing (Excel / VS Code)
+    fieldnames = ["query_id", "question", "ground_truth", "topic"]
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(eval_benchmark)
+
+    print(f"SUCCESS: Exported 35 evaluation samples for ground data review:")
+    print(f"  - JSON format : {json_path.resolve()}")
+    print(f"  - CSV format  : {csv_path.resolve()}\n")
 
 
 if __name__ == "__main__":

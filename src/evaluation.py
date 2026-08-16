@@ -1,4 +1,6 @@
+import csv
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datasets import Dataset
 from src.schema import SearchResult
@@ -159,3 +161,38 @@ class RagasEvaluator:
             "status": "deterministic_heuristic",
             "info": error_msg,
         }
+
+
+def save_summary_csv(
+    eval_results: List[Dict[str, Any]],
+    output_path: str = "results/search_evals.csv",
+) -> Path:
+    """Saves retriever summary evaluation metrics into a CSV file."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = ["retriever", "context_precision", "context_recall", "status", "num_samples"]
+
+    rows = []
+    for res in eval_results:
+        retriever_name = res.get("retriever", "Unknown")
+        scores = res.get("scores", {})
+        prec = scores.get("context_precision", 0.0)
+        rec = scores.get("context_recall", 0.0)
+        status = res.get("status", "ok")
+        num_samples = len(res.get("sample_details", []))
+
+        rows.append({
+            "retriever": retriever_name,
+            "context_precision": f"{prec:.4f}",
+            "context_recall": f"{rec:.4f}",
+            "status": status,
+            "num_samples": num_samples,
+        })
+
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return path

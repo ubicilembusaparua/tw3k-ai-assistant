@@ -1,10 +1,10 @@
-"""Fast Ragas Evaluation Script pulling existing vectors from Qdrant DB."""
+"""Fast Ragas Evaluation Script pulling existing vectors from Qdrant DB and saving summary metrics to results/search_evals.csv."""
 
 from src.dataset import load_dataset
 from src.bm25_retriever import BM25Retriever
 from src.qdrant_retriever import QdrantRetriever
 from src.hybrid_retriever import HybridRetriever
-from src.evaluation import RagasEvaluator
+from src.evaluation import RagasEvaluator, save_summary_csv
 
 
 def main():
@@ -78,11 +78,13 @@ def main():
     qdrant_metrics = evaluator.evaluate_retriever(qdrant_samples, retriever_name="Qdrant Vector DB")
     hybrid_metrics = evaluator.evaluate_retriever(hybrid_samples, retriever_name="Hybrid RRF")
 
+    all_metrics = [bm25_metrics, qdrant_metrics, hybrid_metrics]
+
     print("\n==================================================")
     print(" SUMMARY METRICS (Top-10 Retrieval List) ")
     print("==================================================")
     
-    for eval_res in [bm25_metrics, qdrant_metrics, hybrid_metrics]:
+    for eval_res in all_metrics:
         r_name = eval_res["retriever"]
         scores = eval_res["scores"]
         prec = scores.get("context_precision", 0.0)
@@ -91,11 +93,15 @@ def main():
         print(f"  - Context Precision @10 : {prec:.4f}")
         print(f"  - Context Recall @10    : {rec:.4f}")
 
+    # 6. Save summary metrics into results/search_evals.csv
+    csv_path = save_summary_csv(all_metrics, output_path="results/search_evals.csv")
+    print(f"\nSUCCESS: Summary metrics saved to {csv_path.resolve()}")
+
     print("\n==================================================")
     print(" INDIVIDUAL PER-CONTEXT EVALUATIONS (Top-10 Ranks) ")
     print("==================================================")
 
-    for eval_res in [bm25_metrics, qdrant_metrics, hybrid_metrics]:
+    for eval_res in all_metrics:
         r_name = eval_res["retriever"]
         print(f"\n==================================================")
         print(f" RETRIEVER: {r_name}")

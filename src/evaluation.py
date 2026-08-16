@@ -5,7 +5,7 @@ from src.schema import SearchResult
 
 
 class RagasEvaluator:
-    """Evaluates retrieval quality (Context Precision & Context Recall) using Ragas."""
+    """Evaluates retrieval quality (Context Precision & Context Recall) per retrieved context."""
 
     def __init__(self, metrics: Optional[List[Any]] = None):
         self.metrics = metrics
@@ -49,11 +49,36 @@ class RagasEvaluator:
         eval_samples: List[Dict[str, Any]],
         retriever_name: str = "Retriever",
     ) -> Dict[str, Any]:
-        """Runs evaluation on formatted dataset samples.
-        
-        Calculates Context Precision & Context Recall scores.
-        """
+        """Runs evaluation on formatted dataset samples, evaluating each retrieved context individually."""
         dataset = self.format_dataset(eval_samples)
+
+        # Calculate detailed per-context evaluation for each retrieved item across samples
+        per_sample_details = []
+        for sample in eval_samples:
+            q = sample["question"]
+            gt = sample.get("ground_truth", "")
+            results: List[SearchResult] = sample.get("retrieved_results", [])
+            gt_words = set(w.lower() for w in (gt if isinstance(gt, str) else " ".join(gt)).split() if len(w) > 3)
+
+            context_evals = []
+            for res in results:
+                ctx_lower = res.chunk.content.lower()
+                matches = [w for w in gt_words if w in ctx_lower] if gt_words else []
+                relevance_score = len(matches) / max(len(gt_words), 1) if gt_words else 1.0
+                context_evals.append({
+                    "rank": res.rank,
+                    "chunk_id": res.chunk.id,
+                    "retriever_score": res.score,
+                    "relevance_score": round(relevance_score, 4),
+                    "matched_keywords": matches,
+                    "snippet": res.chunk.content[:120].replace("\n", " "),
+                })
+
+            per_sample_details.append({
+                "question": q,
+                "ground_truth": gt,
+                "context_evaluations": context_evals,
+            })
 
         # Check if OpenAI API key or custom LLM endpoint is set for Ragas execution
         if os.getenv("OPENAI_API_KEY"):
@@ -66,21 +91,22 @@ class RagasEvaluator:
                 return {
                     "retriever": retriever_name,
                     "scores": dict(results),
+                    "sample_details": per_sample_details,
                     "status": "success",
                 }
             except Exception as e:
-                # Fallback heuristics if API call fails
-                return self._fallback_evaluate(dataset, retriever_name, error_msg=str(e))
+                return self._fallback_evaluate(dataset, retriever_name, per_sample_details, error_msg=str(e))
         else:
-            return self._fallback_evaluate(dataset, retriever_name, error_msg="OPENAI_API_KEY not set")
+            return self._fallback_evaluate(dataset, retriever_name, per_sample_details, error_msg="OPENAI_API_KEY not set")
 
     def _fallback_evaluate(
         self,
         dataset: Dataset,
         retriever_name: str,
+        per_sample_details: List[Dict[str, Any]],
         error_msg: str,
     ) -> Dict[str, Any]:
-        """Calculates deterministic text overlap context metrics when offline."""
+        """Calculates deterministic context precision and recall scores per query and top-K context list."""
         precision_scores = []
         recall_scores = []
 
@@ -93,19 +119,16 @@ class RagasEvaluator:
                 recall_scores.append(0.0)
                 continue
 
-            # Heuristic: Check fraction of ground truth keywords found in top retrieved context
             gt_words = set(w for w in gt.split() if len(w) > 3)
             if not gt_words:
                 precision_scores.append(1.0)
                 recall_scores.append(1.0)
                 continue
 
-            # Top context precision
             top_ctx = contexts[0].lower() if contexts else ""
             found_top = sum(1 for w in gt_words if w in top_ctx)
             precision = found_top / len(gt_words)
 
-            # Overall recall across all top-k contexts
             all_ctx = " ".join(contexts).lower()
             found_all = sum(1 for w in gt_words if w in all_ctx)
             recall = found_all / len(gt_words)
@@ -122,6 +145,7 @@ class RagasEvaluator:
                 "context_precision": round(avg_precision, 4),
                 "context_recall": round(avg_recall, 4),
             },
+            "sample_details": per_sample_details,
             "status": "offline_heuristic",
             "info": error_msg,
         }

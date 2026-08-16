@@ -1,4 +1,4 @@
-"""Ragas Evaluation Script using full tw3k_dataset.jsonl corpus."""
+"""Ragas Evaluation Script evaluating top-10 contexts per query across BM25, Qdrant Vector, and Hybrid RRF."""
 
 from src.dataset import load_dataset
 from src.bm25_retriever import BM25Retriever
@@ -9,7 +9,7 @@ from src.evaluation import RagasEvaluator
 
 def main():
     print("==================================================")
-    print(" Ragas Evaluation on tw3k_dataset.jsonl Corpus")
+    print(" Ragas Top-10 Retrieval Evaluation (tw3k_dataset.jsonl)")
     print("==================================================\n")
 
     # 1. Load full transcript dataset
@@ -21,7 +21,7 @@ def main():
     bm25 = BM25Retriever(chunks)
 
     print("Building Qdrant Vector Retriever (ONNX Embedder)...")
-    qdrant = QdrantRetriever(collection_name="ragas_tw3k_full", in_memory=True)
+    qdrant = QdrantRetriever(collection_name="ragas_tw3k_top10", in_memory=True)
     qdrant.index_chunks(chunks, batch_size=64)
 
     print("Building Hybrid RRF Retriever...")
@@ -37,13 +37,10 @@ def main():
             "question": "What is Cao Cao's diplomatic proxy war mechanic?",
             "ground_truth": "Cao Cao uses Credibility points to manipulate diplomatic relations and incite proxy wars between warlords.",
         },
-        {
-            "question": "How to command armies and generals in battle?",
-            "ground_truth": "Armies are composed of up to three generals each commanding up to six unit retinues matched to their element.",
-        },
     ]
 
-    # 4. Collect retrieved context for each query across all 3 retrievers
+    # 4. Collect top-10 retrieved contexts for each query across all 3 retrievers
+    top_k_eval = 10
     bm25_samples = []
     qdrant_samples = []
     hybrid_samples = []
@@ -55,19 +52,19 @@ def main():
         bm25_samples.append({
             "question": q,
             "ground_truth": gt,
-            "retrieved_results": bm25.search(q, top_k=3),
+            "retrieved_results": bm25.search(q, top_k=top_k_eval),
         })
 
         qdrant_samples.append({
             "question": q,
             "ground_truth": gt,
-            "retrieved_results": qdrant.search(q, top_k=3),
+            "retrieved_results": qdrant.search(q, top_k=top_k_eval),
         })
 
         hybrid_samples.append({
             "question": q,
             "ground_truth": gt,
-            "retrieved_results": hybrid.search(q, top_k=3),
+            "retrieved_results": hybrid.search(q, top_k=top_k_eval),
         })
 
     # 5. Evaluate using RagasEvaluator
@@ -78,7 +75,7 @@ def main():
     hybrid_metrics = evaluator.evaluate_retriever(hybrid_samples, retriever_name="Hybrid RRF")
 
     print("\n==================================================")
-    print(" RAGAS EVALUATION METRICS COMPARISON (TW3K Corpus) ")
+    print(" SUMMARY METRICS (Top-10 Retrieval List) ")
     print("==================================================")
     
     for eval_res in [bm25_metrics, qdrant_metrics, hybrid_metrics]:
@@ -86,10 +83,32 @@ def main():
         scores = eval_res["scores"]
         prec = scores.get("context_precision", 0.0)
         rec = scores.get("context_recall", 0.0)
-        mode = eval_res.get("status", "ok")
-        print(f"\n[{r_name}] Mode: {mode}")
-        print(f"  - Context Precision : {prec:.4f}")
-        print(f"  - Context Recall    : {rec:.4f}")
+        print(f"\n[{r_name}]")
+        print(f"  - Context Precision @10 : {prec:.4f}")
+        print(f"  - Context Recall @10    : {rec:.4f}")
+
+    print("\n==================================================")
+    print(" INDIVIDUAL PER-CONTEXT EVALUATIONS (Top-10 Ranks) ")
+    print("==================================================")
+
+    for eval_res in [bm25_metrics, qdrant_metrics, hybrid_metrics]:
+        r_name = eval_res["retriever"]
+        print(f"\n==================================================")
+        print(f" RETRIEVER: {r_name}")
+        print(f"==================================================")
+
+        for s_idx, sample in enumerate(eval_res["sample_details"], start=1):
+            print(f"\nQuery #{s_idx}: '{sample['question']}'")
+            print(f"Ground Truth: '{sample['ground_truth']}'")
+            print("-" * 75)
+
+            for ctx_eval in sample["context_evaluations"]:
+                print(
+                    f"  [Rank {ctx_eval['rank']:2d}] Score: {ctx_eval['retriever_score']:7.4f} | "
+                    f"Relevance: {ctx_eval['relevance_score']:6.2f} | "
+                    f"Matches: {ctx_eval['matched_keywords']}"
+                )
+                print(f"            Snippet: \"{ctx_eval['snippet']}...\"")
 
 
 if __name__ == "__main__":

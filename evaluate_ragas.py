@@ -1,5 +1,7 @@
-"""Fast Ragas Evaluation Script pulling existing vectors from Qdrant DB and saving summary metrics to results/search_evals.csv."""
+"""Fast Ragas Evaluation Script executing 35-query benchmark from results/eval_dataset.json and writing results/search_evals.csv."""
 
+import json
+from pathlib import Path
 from src.dataset import load_dataset
 from src.bm25_retriever import BM25Retriever
 from src.qdrant_retriever import QdrantRetriever
@@ -9,10 +11,10 @@ from src.evaluation import RagasEvaluator, save_summary_csv
 
 def main():
     print("==================================================")
-    print(" Ragas Top-10 Retrieval Evaluation (tw3k_dataset.jsonl)")
+    print(" Ragas Evaluation - 35-Query Benchmark Suite")
     print("==================================================\n")
 
-    # 1. Load full transcript dataset for BM25
+    # 1. Load full transcript dataset
     chunks = load_dataset("tw3k_dataset.jsonl")
     print(f"Loaded {len(chunks)} document chunks from tw3k_dataset.jsonl.\n")
 
@@ -31,17 +33,18 @@ def main():
     print("Building Hybrid RRF Retriever...")
     hybrid = HybridRetriever(bm25, qdrant, rrf_k=60)
 
-    # 3. Evaluation dataset queries with ground truths
-    eval_queries = [
-        {
-            "question": "How to manage public order and reduce corruption in commanderies?",
-            "ground_truth": "Build a Grand Inspectorate, lower tax rates, and assign high Authority administrators to maintain public order.",
-        },
-        {
-            "question": "What is Cao Cao's diplomatic proxy war mechanic?",
-            "ground_truth": "Cao Cao uses Credibility points to manipulate diplomatic relations and incite proxy wars between warlords.",
-        },
-    ]
+    # 3. Load benchmark evaluation dataset from results/eval_dataset.json
+    eval_file = Path("results/eval_dataset.json")
+    if eval_file.exists():
+        with open(eval_file, "r", encoding="utf-8") as f:
+            eval_queries = json.load(f)
+        print(f"\nLoaded {len(eval_queries)} benchmark queries from {eval_file}.")
+    else:
+        print("\nBenchmark file not found. Generating default benchmark...")
+        from generate_eval_dataset import main as gen_main
+        gen_main()
+        with open(eval_file, "r", encoding="utf-8") as f:
+            eval_queries = json.load(f)
 
     # 4. Collect top-10 retrieved contexts for each query across all 3 retrievers
     top_k_eval = 10
@@ -49,6 +52,7 @@ def main():
     qdrant_samples = []
     hybrid_samples = []
 
+    print(f"\nExecuting search queries across all retrievers (top_k={top_k_eval})...")
     for item in eval_queries:
         q = item["question"]
         gt = item["ground_truth"]
@@ -72,6 +76,7 @@ def main():
         })
 
     # 5. Evaluate using RagasEvaluator
+    print("Calculating Context Precision & Context Recall metrics...")
     evaluator = RagasEvaluator()
 
     bm25_metrics = evaluator.evaluate_retriever(bm25_samples, retriever_name="BM25 Lexical")
@@ -81,7 +86,7 @@ def main():
     all_metrics = [bm25_metrics, qdrant_metrics, hybrid_metrics]
 
     print("\n==================================================")
-    print(" SUMMARY METRICS (Top-10 Retrieval List) ")
+    print(f" BENCHMARK SUMMARY METRICS ({len(eval_queries)} Queries @ Top-10)")
     print("==================================================")
     
     for eval_res in all_metrics:
@@ -96,29 +101,6 @@ def main():
     # 6. Save summary metrics into results/search_evals.csv
     csv_path = save_summary_csv(all_metrics, output_path="results/search_evals.csv")
     print(f"\nSUCCESS: Summary metrics saved to {csv_path.resolve()}")
-
-    print("\n==================================================")
-    print(" INDIVIDUAL PER-CONTEXT EVALUATIONS (Top-10 Ranks) ")
-    print("==================================================")
-
-    for eval_res in all_metrics:
-        r_name = eval_res["retriever"]
-        print(f"\n==================================================")
-        print(f" RETRIEVER: {r_name}")
-        print(f"==================================================")
-
-        for s_idx, sample in enumerate(eval_res["sample_details"], start=1):
-            print(f"\nQuery #{s_idx}: '{sample['question']}'")
-            print(f"Ground Truth: '{sample['ground_truth']}'")
-            print("-" * 75)
-
-            for ctx_eval in sample["context_evaluations"]:
-                print(
-                    f"  [Rank {ctx_eval['rank']:2d}] Score: {ctx_eval['retriever_score']:7.4f} | "
-                    f"Relevance: {ctx_eval['relevance_score']:6.2f} | "
-                    f"Matches: {ctx_eval['matched_keywords']}"
-                )
-                print(f"            Snippet: \"{ctx_eval['snippet']}...\"")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,212 @@
+[
+  {
+    "query_id": "query_01",
+    "question": "How to manage public order and reduce corruption in commanderies?",
+    "ground_truth": "Build State Workshops for corruption reduction in adjacent commanderies, lower tax rates, and assign high Authority administrators to boost public order.",
+    "topic": "Economy & Public Order"
+  },
+  {
+    "query_id": "query_02",
+    "question": "What is Cao Cao's diplomatic proxy war mechanic?",
+    "ground_truth": "Cao Cao uses Credibility points to manipulate diplomatic relations between factions and incite proxy wars without directly entering combat.",
+    "topic": "Faction Mechanics"
+  },
+  {
+    "query_id": "query_03",
+    "question": "How to command armies and unit retinues in battle?",
+    "ground_truth": "Armies consist of up to three generals, each commanding up to six unit retinues matching their elemental color and general class specialization.",
+    "topic": "Tactics & Military"
+  },
+  {
+    "query_id": "query_04",
+    "question": "What are the best cavalry flank tactics against enemy ranged units?",
+    "ground_truth": "Use heavy shock cavalry to flank around spear infantry lines and charge into vulnerable enemy archers and crossbowmen from behind.",
+    "topic": "Tactics & Military"
+  },
+  {
+    "query_id": "query_05",
+    "question": "How does character satisfaction affect general loyalty and rebellion risk?",
+    "ground_truth": "Low satisfaction increases the risk of generals defecting, serving as enemy spies, or starting civil war rebellions in commanderies.",
+    "topic": "Character Management"
+  },
+  {
+    "query_id": "query_06",
+    "question": "How to unlock more trade agreements with rival warlords?",
+    "ground_truth": "Research foreign trade reforms, build market wharves, and establish contiguous land borders or shared port coastlines with trade partners.",
+    "topic": "Economy & Trade"
+  },
+  {
+    "query_id": "query_07",
+    "question": "What is Dong Zhuo's Intimidation mechanic and how to maintain it?",
+    "ground_truth": "Dong Zhuo maintains Intimidation by executing captured generals, razing settlements, and using harsh governance to prevent faction collapse.",
+    "topic": "Faction Mechanics"
+  },
+  {
+    "query_id": "query_08",
+    "question": "How do spy networks gather cover points and execute covert actions?",
+    "ground_truth": "Spies build Cover and Network points over time in enemy factions, enabling actions like military sabotage, character assassination, or surrendering territories.",
+    "topic": "Espionage"
+  },
+  {
+    "query_id": "query_09",
+    "question": "What is the role of Administrator assignments in commandery governance?",
+    "ground_truth": "Administrators provide commandery-wide stat buffs to income, public order, and corruption reduction, while defending city garrisons during sieges.",
+    "topic": "Governance"
+  },
+  {
+    "query_id": "query_10",
+    "question": "How to gain Imperial Favor and avoid being declared an enemy of the Han?",
+    "ground_truth": "Maintain high Imperial Favor by defeating Han enemies, avoiding war with loyalist Han factions, and fulfilling Han Emperor mandates.",
+    "topic": "Diplomacy & Emperor"
+  },
+  {
+    "query_id": "query_11",
+    "question": "How do shock cavalry differ from melee cavalry in unit roles?",
+    "ground_truth": "Shock cavalry excel at high charge impact against infantry, whereas melee cavalry feature high missile block rates for hunting archers.",
+    "topic": "Tactics & Military"
+  },
+  {
+    "query_id": "query_12",
+    "question": "What building chain provides the highest industrial income?",
+    "ground_truth": "The Private Artisans and State Workshops building chains generate high base industrial income and boost industrial multipliers across the commandery.",
+    "topic": "Economy & Buildings"
+  },
+  {
+    "query_id": "query_13",
+    "question": "How to increase food production to support growing commandery populations?",
+    "ground_truth": "Upgrade Land Development farms, livestock farms, and research agricultural reform nodes to boost food output for trade and city growth.",
+    "topic": "Agriculture & Growth"
+  },
+  {
+    "query_id": "query_14",
+    "question": "What is Yuan Shao's lineage mechanic and captain retinue feature?",
+    "ground_truth": "Yuan Shao uses Lineage to recruit specialized captain retinues without needing full generals, enabling cheap army stack recruitment.",
+    "topic": "Faction Mechanics"
+  },
+  {
+    "query_id": "query_15",
+    "question": "How to handle yellow turban rebellions in low public order provinces?",
+    "ground_truth": "Station garrison armies, build grain stores or Confucian temples for public order, and defeat Yellow Turban stacks before they capture county capitals.",
+    "topic": "Public Order & Defense"
+  },
+  {
+    "query_id": "query_16",
+    "question": "What is Sun Jian's Heroism mechanic and combat bonuses?",
+    "ground_truth": "Sun Jian generates Heroism through aggressive battle victories, lowering unit upkeep and granting melee damage buffs across all retinues.",
+    "topic": "Faction Mechanics"
+  },
+  {
+    "query_id": "query_17",
+    "question": "How to execute night battles to isolate enemy reinforcing armies?",
+    "ground_truth": "Unlock the Night Battle skill on Strategist or Commander generals to attack enemy armies without allowing nearby reinforcements to enter battle.",
+    "topic": "Tactics & Military"
+  },
+  {
+    "query_id": "query_18",
+    "question": "How to reduce army deployment and recruitment costs?",
+    "ground_truth": "Assign Vanguard or Strategist court ministers with redeployment cost reductions and research military reform branch nodes.",
+    "topic": "Military & Economy"
+  },
+  {
+    "query_id": "query_19",
+    "question": "What are the benefits of declaring yourself Emperor when reaching King rank?",
+    "ground_truth": "Reaching King rank unlocks Imperial court positions, grants extra army limits, and forces the top three prestige factions into the Three Kingdoms endgame.",
+    "topic": "Endgame & Factions"
+  },
+  {
+    "query_id": "query_20",
+    "question": "How do trebuchets and siege artillery break settlement fortifications?",
+    "ground_truth": "Trebuchets commanded by Strategists fire explosive or stone projectiles to breach city walls, destroy tower defenses, and route defender lines.",
+    "topic": "Siege Battles"
+  },
+  {
+    "query_id": "query_21",
+    "question": "How to boost character satisfaction with titles and court positions?",
+    "ground_truth": "Grant higher court titles, increase character salaries, assign administrator duties, or equip satisfaction-boosting accessories and weapons.",
+    "topic": "Character Management"
+  },
+  {
+    "query_id": "query_22",
+    "question": "What are spear infantry shield wall formations used for?",
+    "ground_truth": "Spear shield walls reflect enemy cavalry charges, brace against frontal impact, and protect infantry from incoming missile fire.",
+    "topic": "Tactics & Military"
+  },
+  {
+    "query_id": "query_23",
+    "question": "How to manage food trade deals to generate gold per turn income?",
+    "ground_truth": "Export excess food to food-scarce AI warlords in exchange for regular gold per turn diplomatic payments.",
+    "topic": "Economy & Trade"
+  },
+  {
+    "query_id": "query_24",
+    "question": "What is Gongsun Zan's Inspector military governance mechanic?",
+    "ground_truth": "Gongsun Zan uses military inspectors to govern commanderies, boosting armor equipment stats and garrison strength.",
+    "topic": "Faction Mechanics"
+  },
+  {
+    "query_id": "query_25",
+    "question": "How do Wu Xing five elemental colors correspond to general classes?",
+    "ground_truth": "Green/Wood is Champion, Red/Fire is Vanguard, Yellow/Earth is Commander, Purple/Metal is Sentinel, and Blue/Water is Strategist.",
+    "topic": "Game Mechanics"
+  },
+  {
+    "query_id": "query_26",
+    "question": "How to replenish casualties faster after taking heavy losses in campaign battles?",
+    "ground_truth": "Encamp armies in friendly territory, assign generals with high Instinct/Authority replenishment skills, and construct regional garrison buildings.",
+    "topic": "Campaign Strategy"
+  },
+  {
+    "query_id": "query_27",
+    "question": "What is Liu Bei's Unity mechanic and annexing Han territories feature?",
+    "ground_truth": "Liu Bei uses Unity points to peacefully annex Han empire settlements without going to war, gaining rapid territory expansion.",
+    "topic": "Faction Mechanics"
+  },
+  {
+    "query_id": "query_28",
+    "question": "How to reduce corruption across multiple adjacent commanderies?",
+    "ground_truth": "Construct Grand Inspectorates or State Workshops in central commanderies that broadcast a percentage corruption reduction to adjacent territories.",
+    "topic": "Economy & Governance"
+  },
+  {
+    "query_id": "query_29",
+    "question": "What are the advantages of Strategist generals in army composition?",
+    "ground_truth": "Strategists unlock advanced battle formations, recruit siege trebuchets and elite crossbowmen, and boost ammunition counts.",
+    "topic": "Army Composition"
+  },
+  {
+    "query_id": "query_30",
+    "question": "How to win duels between generals in Three Kingdoms campaign battles?",
+    "ground_truth": "Send high-Resolve Champions equipped with armor and weapons to duel enemy commanders while using general active combat abilities.",
+    "topic": "Duels & Heroes"
+  },
+  {
+    "query_id": "query_31",
+    "question": "How to defend wooden encampments and minor settlement resource nodes?",
+    "ground_truth": "Funnel attacking armies into narrow chokepoints, place spear units at tower entrances, and rain arrows from barricade walls.",
+    "topic": "Siege Defenses"
+  },
+  {
+    "query_id": "query_32",
+    "question": "What is the function of coalition alliances vs military alliances?",
+    "ground_truth": "Coalitions allow joint war declarations without binding defense obligations, whereas military alliances require mutual defense when attacked.",
+    "topic": "Diplomacy"
+  },
+  {
+    "query_id": "query_33",
+    "question": "How to increase commerce income in coastal and river commanderies?",
+    "ground_truth": "Build Coastal Ports, Trading Posts, and Market Places to stack base commerce revenue with regional trade percentage multipliers.",
+    "topic": "Economy & Commerce"
+  },
+  {
+    "query_id": "query_34",
+    "question": "How does campaign movement range affect army stance and march speed?",
+    "ground_truth": "Using March stance increases movement distance but prevents raiding or attacking, leaving armies tired if ambushed.",
+    "topic": "Campaign Strategy"
+  },
+  {
+    "query_id": "query_35",
+    "question": "How to prevent enemy spies from infiltrating your court and faction minister roles?",
+    "ground_truth": "Perform background checks on recruitable character history, maintain high satisfaction, and deploy internal security spies.",
+    "topic": "Counter-Espionage"
+  }
+]

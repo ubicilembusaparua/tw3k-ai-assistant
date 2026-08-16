@@ -61,3 +61,33 @@ def test_rag_base_build_context_dict():
     assert "Video Title: Total War Three Kingdoms Battle Guide" in context
     assert "Channel: Serious Trivia" in context
     assert "Timestamp: 05:12" in context
+
+
+def test_rag_base_search_with_reranker():
+    mock_retriever = MagicMock()
+    mock_reranker = MagicMock()
+
+    candidate_results = [
+        SearchResult(
+            chunk=DocumentChunk(id="1", content="Passage 1", metadata={}),
+            score=0.03,
+            rank=1,
+        ),
+        SearchResult(
+            chunk=DocumentChunk(id="2", content="Passage 2", metadata={}),
+            score=0.02,
+            rank=2,
+        ),
+    ]
+    mock_retriever.search.return_value = candidate_results
+
+    reranked_results = [candidate_results[1]]
+    mock_reranker.rerank.return_value = reranked_results
+
+    app = RAGBase(index=mock_retriever, reranker=mock_reranker)
+    results = app.search("strategy", num_results=1, fetch_k=20)
+
+    mock_retriever.search.assert_called_once_with("strategy", top_k=20)
+    mock_reranker.rerank.assert_called_once_with("strategy", candidate_results, top_k=1)
+    assert len(results) == 1
+    assert results[0].chunk.id == "2"

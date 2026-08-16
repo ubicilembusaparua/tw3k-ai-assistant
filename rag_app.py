@@ -1,6 +1,4 @@
-from typing import Any, List, Optional
-from src.hybrid_retriever import HybridRetriever
-from src.schema import SearchResult
+from src.reranker import Reranker
 
 
 INSTRUCTIONS = """
@@ -39,27 +37,38 @@ class RAGBase():
     def __init__(
             self,
             index: Any,
+            reranker: Any = None,
             llm_client: Any = None,
             instructions: str = INSTRUCTIONS,
             prompt_template: str = PROMPT_TEMPLATE,
             model: str = "gpt-5.4-mini"
     ):
         self.index = index
+        self.reranker = reranker
         self.llm_client = llm_client
         self.instructions = instructions
         self.prompt_template = prompt_template
         self.model = model
 
-    def search(self, query: str, num_results: int = 5) -> List[Any]:
-        """Performs hybrid retrieval combining BM25 keyword search and dense vector search via Reciprocal Rank Fusion (RRF)."""
+    def search(self, query: str, num_results: int = 5, fetch_k: int = 20) -> List[Any]:
+        """Performs hybrid retrieval (BM25 + Qdrant Vector via RRF), optionally re-ranking top candidate passages with Cross-Encoder joint attention."""
+        top_candidates_k = fetch_k if self.reranker else num_results
+
         if hasattr(self.index, "search"):
             try:
-                return self.index.search(query, top_k=num_results)
+                results = self.index.search(query, top_k=top_candidates_k)
             except TypeError:
-                return self.index.search(query, num_results=num_results)
+                results = self.index.search(query, num_results=top_candidates_k)
         elif hasattr(self.index, "hybrid_search"):
-            return self.index.hybrid_search(query, top_k=num_results)
-        return []
+            results = self.index.hybrid_search(query, top_k=top_candidates_k)
+        else:
+            results = []
+
+        if self.reranker and results:
+            if hasattr(self.reranker, "rerank"):
+                return self.reranker.rerank(query, results, top_k=num_results)
+
+        return results
 
     def build_context(self, search_results):
         context_chunks = []

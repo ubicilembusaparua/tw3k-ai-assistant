@@ -1,4 +1,4 @@
-"""Ragas Evaluation Script evaluating top-10 contexts per query across BM25, Qdrant Vector, and Hybrid RRF."""
+"""Fast Ragas Evaluation Script pulling existing vectors from Qdrant DB."""
 
 from src.dataset import load_dataset
 from src.bm25_retriever import BM25Retriever
@@ -12,7 +12,7 @@ def main():
     print(" Ragas Top-10 Retrieval Evaluation (tw3k_dataset.jsonl)")
     print("==================================================\n")
 
-    # 1. Load full transcript dataset
+    # 1. Load full transcript dataset for BM25
     chunks = load_dataset("tw3k_dataset.jsonl")
     print(f"Loaded {len(chunks)} document chunks from tw3k_dataset.jsonl.\n")
 
@@ -20,9 +20,13 @@ def main():
     print("Building BM25 Lexical Retriever...")
     bm25 = BM25Retriever(chunks)
 
-    print("Building Qdrant Vector Retriever (ONNX Embedder)...")
-    qdrant = QdrantRetriever(collection_name="ragas_tw3k_top10", in_memory=True)
-    qdrant.index_chunks(chunks, batch_size=64)
+    print("Connecting to Qdrant Vector Database...")
+    qdrant = QdrantRetriever(collection_name="tw3k_transcripts")
+    if qdrant.get_point_count() == 0:
+        print(f"Qdrant collection empty. Ingesting {len(chunks)} chunks...")
+        qdrant.index_chunks(chunks, batch_size=64)
+    else:
+        print(f"Connected to Qdrant DB: {qdrant.get_point_count()} existing points found.")
 
     print("Building Hybrid RRF Retriever...")
     hybrid = HybridRetriever(bm25, qdrant, rrf_k=60)

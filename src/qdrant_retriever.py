@@ -42,9 +42,22 @@ class QdrantRetriever:
                 vectors_config=VectorParams(size=self.vector_dim, distance=Distance.COSINE),
             )
 
-    def index_chunks(self, chunks: List[DocumentChunk], batch_size: int = 64):
+    def get_point_count(self) -> int:
+        """Returns total vector points stored in collection."""
+        try:
+            info = self.client.get_collection(self.collection_name)
+            return info.points_count or 0
+        except Exception:
+            return 0
+
+    def index_chunks(self, chunks: List[DocumentChunk], batch_size: int = 64, force: bool = False):
         """Encode document chunks using ONNX Embedder and upsert vectors + metadata into Qdrant."""
         if not chunks:
+            return
+
+        # Skip indexing if points already exist in Qdrant DB and force flag is False
+        if not force and self.get_point_count() >= len(chunks):
+            print(f"Skipping indexing: Collection '{self.collection_name}' already contains {self.get_point_count()} points.")
             return
 
         for i in tqdm(range(0, len(chunks), batch_size)):

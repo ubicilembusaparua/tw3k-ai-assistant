@@ -1,4 +1,4 @@
-"""Side-by-side RAG Retrieval Evaluation (Top 10 Results) on tw3k_dataset.jsonl."""
+"""Fast Side-by-side Retrieval Evaluation (Top 10 Results) pulling existing vectors from Qdrant DB."""
 
 from src.dataset import load_dataset
 from src.bm25_retriever import BM25Retriever
@@ -8,21 +8,28 @@ from src.hybrid_retriever import HybridRetriever
 
 def main():
     print("==================================================")
-    print(" Full Dataset Retrieval Evaluation - Top 10 Results")
+    print(" Full Dataset Retrieval Evaluation (Top 10 Results)")
     print("==================================================\n")
 
-    # 1. Load full transcript dataset
+    # 1. Load dataset for BM25
+    print("Loading transcript chunks from tw3k_dataset.jsonl...")
     chunks = load_dataset("tw3k_dataset.jsonl")
-    print(f"Loaded {len(chunks)} transcript chunks from tw3k_dataset.jsonl.\n")
+    print(f"Loaded {len(chunks)} transcript chunks.\n")
 
-    # 2. Initialize BM25 Lexical Retriever
+    # 2. Initialize BM25 Lexical Retriever directly from dataset
     print("Building BM25 Lexical index...")
     bm25_retriever = BM25Retriever(chunks)
 
-    # 3. Initialize Qdrant Vector Retriever and index embeddings
-    print("Initializing Qdrant Vector Database (ONNX Embedder)...")
-    qdrant_retriever = QdrantRetriever(collection_name="tw3k_transcripts_top10", in_memory=True)
-    qdrant_retriever.index_chunks(chunks, batch_size=64)
+    # 3. Connect to Qdrant Vector DB (Pulls existing vectors without re-embedding if available)
+    print("Connecting to Qdrant Vector Database...")
+    qdrant_retriever = QdrantRetriever(collection_name="tw3k_transcripts")
+    
+    # Index only if Qdrant collection is currently empty
+    if qdrant_retriever.get_point_count() == 0:
+        print(f"Qdrant collection empty. Ingesting {len(chunks)} chunks...")
+        qdrant_retriever.index_chunks(chunks, batch_size=64)
+    else:
+        print(f"Connected to Qdrant DB: {qdrant_retriever.get_point_count()} existing points found.")
 
     # 4. Initialize Hybrid RRF Retriever
     print("Initializing Hybrid RRF Fusion Retriever...")

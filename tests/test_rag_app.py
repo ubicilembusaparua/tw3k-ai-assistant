@@ -41,8 +41,9 @@ def test_rag_base_build_context_search_result():
     ]
     context = app.build_context(search_results)
     assert "--- Document 1 ---" in context
+    assert "Video Title:" in context
     assert "Content: Battle of Red Cliffs strategy" in context
-    assert "channel: ThreeKingdomsHistory" in context
+    assert "ThreeKingdomsHistory" not in context
 
 
 def test_rag_base_build_context_dict():
@@ -59,8 +60,8 @@ def test_rag_base_build_context_dict():
     assert "--- Document 1 ---" in context
     assert "Content: Position archers on the high ground to maximize range and damage." in context
     assert "Video Title: Total War Three Kingdoms Battle Guide" in context
-    assert "Channel: Serious Trivia" in context
-    assert "Timestamp: 05:12" in context
+    assert "Serious Trivia" not in context
+    assert "05:12" not in context
 
 
 def test_rag_base_search_with_reranker():

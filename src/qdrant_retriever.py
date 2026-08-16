@@ -4,6 +4,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 from sentence_transformers import SentenceTransformer
 from src.schema import DocumentChunk, SearchResult
+from tqdm.auto import tqdm
 
 
 class QdrantRetriever:
@@ -45,7 +46,7 @@ class QdrantRetriever:
         if not chunks:
             return
 
-        for i in range(0, len(chunks), batch_size):
+        for i in tqdm(range(0, len(chunks), batch_size)):
             batch = chunks[i : i + batch_size]
             texts = [c.content for c in batch]
             embeddings = self.model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)

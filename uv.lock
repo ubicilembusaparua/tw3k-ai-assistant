@@ -3049,6 +3049,7 @@ dependencies = [
     { name = "qdrant-client" },
     { name = "rank-bm25" },
     { name = "sentence-transformers" },
+    { name = "tqdm" },
 ]
 
 [package.dev-dependencies]
@@ -3063,6 +3064,7 @@ requires-dist = [
     { name = "qdrant-client", specifier = ">=1.9.0" },
     { name = "rank-bm25", specifier = ">=0.2.2" },
     { name = "sentence-transformers", specifier = ">=2.2.0" },
+    { name = "tqdm", specifier = ">=4.70.0" },
 ]
 
 [package.metadata.requires-dev]

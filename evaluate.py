@@ -1,14 +1,14 @@
-"""Interactive evaluation script comparing BM25, Vector Embedding, and Hybrid (RRF) retrieval strategies side-by-side."""
+"""Interactive evaluation script comparing BM25, Qdrant Vector, and Hybrid (RRF) retrieval strategies side-by-side."""
 
 from src.schema import DocumentChunk
 from src.bm25_retriever import BM25Retriever
-from src.vector_retriever import VectorRetriever
+from src.qdrant_retriever import QdrantRetriever
 from src.hybrid_retriever import HybridRetriever
 
 
 def main():
     print("==================================================")
-    print(" RAG Retrieval Comparison: BM25 vs Vector vs Hybrid")
+    print(" RAG Retrieval Comparison: BM25 vs Qdrant vs Hybrid")
     print("==================================================\n")
 
     # 1. Corpus of strategy & domain knowledge passages
@@ -41,11 +41,12 @@ def main():
     print("Initializing BM25 Lexical Retriever...")
     bm25_retriever = BM25Retriever(corpus)
 
-    print("Initializing Vector Semantic Retriever (SentenceTransformer: all-MiniLM-L6-v2)...")
-    vector_retriever = VectorRetriever(corpus)
+    print("Initializing Qdrant Vector Retriever...")
+    qdrant_retriever = QdrantRetriever(collection_name="evaluate_corpus", in_memory=True)
+    qdrant_retriever.index_chunks(corpus)
 
     print("Initializing Hybrid Retriever (RRF Fusion)...")
-    hybrid_retriever = HybridRetriever(bm25_retriever, vector_retriever, rrf_k=60)
+    hybrid_retriever = HybridRetriever(bm25_retriever, qdrant_retriever, rrf_k=60)
 
     print("\n--------------------------------------------------")
 
@@ -61,14 +62,14 @@ def main():
         print("=" * 65)
 
         bm25_res = bm25_retriever.search(query, top_k=2)
-        vec_res = vector_retriever.search(query, top_k=2)
+        qdrant_res = qdrant_retriever.search(query, top_k=2)
         hyb_res = hybrid_retriever.search(query, top_k=2)
 
         def fmt(res):
             return f"[{res[0].chunk.id}] {res[0].chunk.content[:65]}... (Score: {res[0].score:.4f})" if res else "N/A"
 
-        print(f"  [BM25  Top-1]: {fmt(bm25_res)}")
-        print(f"  [Vector Top-1]: {fmt(vec_res)}")
+        print(f"  [BM25   Top-1]: {fmt(bm25_res)}")
+        print(f"  [Qdrant Top-1]: {fmt(qdrant_res)}")
         print(f"  [Hybrid Top-1]: {fmt(hyb_res)}")
 
 

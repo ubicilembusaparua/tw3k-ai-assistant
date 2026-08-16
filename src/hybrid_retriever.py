@@ -1,27 +1,27 @@
 from typing import Dict, List
 from src.bm25_retriever import BM25Retriever
+from src.qdrant_retriever import QdrantRetriever
 from src.schema import DocumentChunk, SearchResult
-from src.vector_retriever import VectorRetriever
 
 
 class HybridRetriever:
-    """Hybrid Retrieval combining BM25 and Vector search using Reciprocal Rank Fusion (RRF)."""
+    """Hybrid Retrieval combining BM25 and Qdrant Vector search using Reciprocal Rank Fusion (RRF)."""
 
     def __init__(
         self,
         bm25_retriever: BM25Retriever,
-        vector_retriever: VectorRetriever,
+        qdrant_retriever: QdrantRetriever,
         rrf_k: int = 60,
     ):
         self.bm25_retriever = bm25_retriever
-        self.vector_retriever = vector_retriever
+        self.qdrant_retriever = qdrant_retriever
         self.rrf_k = rrf_k
 
     def search(self, query: str, top_k: int = 5, fetch_k: int = 20) -> List[SearchResult]:
         """Fetch top candidates from both retrievers and fuse them using RRF."""
         # 1. Retrieve top candidates from both models
         bm25_results = self.bm25_retriever.search(query, top_k=fetch_k)
-        vector_results = self.vector_retriever.search(query, top_k=fetch_k)
+        vector_results = self.qdrant_retriever.search(query, top_k=fetch_k)
 
         # 2. Accumulate RRF scores using rank position
         rrf_scores: Dict[str, float] = {}
@@ -33,7 +33,7 @@ class HybridRetriever:
             chunk_map[cid] = item.chunk
             rrf_scores[cid] = rrf_scores.get(cid, 0.0) + (1.0 / (self.rrf_k + item.rank))
 
-        # Add Vector ranks
+        # Add Vector (Qdrant) ranks
         for item in vector_results:
             cid = item.chunk.id
             chunk_map[cid] = item.chunk

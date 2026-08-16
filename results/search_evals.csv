@@ -1,5 +1,0 @@
-retriever,context_precision,context_recall,status,num_samples
-BM25 Lexical,0.8429,0.4348,deterministic_heuristic,35
-Qdrant Vector DB,0.7807,0.4128,deterministic_heuristic,35
-Hybrid RRF,0.8529,0.4215,deterministic_heuristic,35
-Hybrid + Cross-Encoder Re-ranker,0.8594,0.4262,deterministic_heuristic,35

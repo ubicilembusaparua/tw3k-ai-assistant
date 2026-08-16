@@ -165,7 +165,7 @@ class RagasEvaluator:
 
 def save_summary_csv(
     eval_results: List[Dict[str, Any]],
-    output_path: str = "results/search_evals.csv",
+    output_path: str = "_evaluation/results/search_evals.csv",
 ) -> Path:
     """Saves retriever summary evaluation metrics into a CSV file."""
     path = Path(output_path)

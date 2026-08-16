@@ -1,4 +1,4 @@
-"""Generates a 35-query benchmark evaluation dataset (results/eval_dataset.json & results/eval_dataset.csv) for human ground data evaluation."""
+"""Generates a 35-query benchmark evaluation dataset (_evaluation/results/eval_dataset.json & .csv) for human ground data evaluation."""
 
 import csv
 import json
@@ -228,7 +228,7 @@ def main():
         },
     ]
 
-    output_dir = Path("results")
+    output_dir = Path("_evaluation/results")
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "eval_dataset.json"
     csv_path = output_dir / "eval_dataset.csv"

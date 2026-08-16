@@ -2,20 +2,28 @@
 
 import csv
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
+
+# Add root directory to sys.path if running from within _evaluation
+root_dir = Path(__file__).resolve().parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
 from src.dataset import load_dataset
 from src.bm25_retriever import BM25Retriever
 from src.qdrant_retriever import QdrantRetriever
 from src.hybrid_retriever import HybridRetriever
 from src.reranker import Reranker
-from src.evaluation import RagasEvaluator, save_summary_csv
+from _evaluation.evaluation import RagasEvaluator, save_summary_csv
 
 
 def load_eval_benchmark() -> List[Dict[str, Any]]:
-    """Loads benchmark evaluation samples from results/eval_dataset.csv or results/eval_dataset.json."""
-    csv_file = Path("results/eval_dataset.csv")
-    json_file = Path("results/eval_dataset.json")
+    """Loads benchmark evaluation samples from _evaluation/results/eval_dataset.csv or .json."""
+    eval_dir = Path(__file__).resolve().parent / "results"
+    csv_file = eval_dir / "eval_dataset.csv"
+    json_file = eval_dir / "eval_dataset.json"
 
     if csv_file.exists():
         print(f"Loading benchmark queries from {csv_file.resolve()}...")
@@ -27,7 +35,8 @@ def load_eval_benchmark() -> List[Dict[str, Any]]:
         with open(json_file, "r", encoding="utf-8") as f:
             return json.load(f)
     else:
-        from generate_eval_dataset import main as gen_main
+        print("Benchmark file not found. Generating default 35-query dataset...")
+        from _evaluation.generate_eval_dataset import main as gen_main
         gen_main()
         with open(json_file, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -112,8 +121,8 @@ def main():
         print(f"  - Context Precision @5 : {prec:.4f}")
         print(f"  - Context Recall @5    : {rec:.4f}")
 
-    # 6. Save summary metrics into results/search_evals.csv
-    csv_path = save_summary_csv(all_metrics, output_path="results/search_evals.csv")
+    # 6. Save summary metrics into _evaluation/results/search_evals.csv
+    csv_path = save_summary_csv(all_metrics, output_path="_evaluation/results/search_evals.csv")
     print(f"\nSUCCESS: Summary metrics saved to {csv_path.resolve()}")
 
 

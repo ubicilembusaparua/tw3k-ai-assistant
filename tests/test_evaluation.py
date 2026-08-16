@@ -1,6 +1,6 @@
 import pytest
 from src.schema import DocumentChunk, SearchResult
-from src.evaluation import RagasEvaluator
+from _evaluation.evaluation import RagasEvaluator
 
 
 def test_ragas_evaluator_format_dataset():

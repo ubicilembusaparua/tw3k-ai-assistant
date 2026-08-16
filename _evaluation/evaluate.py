@@ -1,4 +1,12 @@
-"""Fast Side-by-side Retrieval Evaluation (Top 10 Results) pulling existing vectors from Qdrant DB."""
+"""Side-by-side RAG Retrieval Evaluation (Top 10 Results) pulling existing vectors from Qdrant DB."""
+
+import sys
+from pathlib import Path
+
+# Add root directory to sys.path if running from within _evaluation
+root_dir = Path(__file__).resolve().parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
 
 from src.dataset import load_dataset
 from src.bm25_retriever import BM25Retriever
@@ -20,11 +28,10 @@ def main():
     print("Building BM25 Lexical index...")
     bm25_retriever = BM25Retriever(chunks)
 
-    # 3. Connect to Qdrant Vector DB (Pulls existing vectors without re-embedding if available)
+    # 3. Connect to Qdrant Vector DB
     print("Connecting to Qdrant Vector Database...")
     qdrant_retriever = QdrantRetriever(collection_name="tw3k_transcripts")
     
-    # Index only if Qdrant collection is currently empty
     if qdrant_retriever.get_point_count() == 0:
         print(f"Qdrant collection empty. Ingesting {len(chunks)} chunks...")
         qdrant_retriever.index_chunks(chunks, batch_size=64)

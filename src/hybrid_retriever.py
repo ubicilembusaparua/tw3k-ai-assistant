@@ -17,7 +17,7 @@ class HybridRetriever:
         self.qdrant_retriever = qdrant_retriever
         self.rrf_k = rrf_k
 
-    def search(self, query: str, top_k: int = 5, fetch_k: int = 20) -> List[SearchResult]:
+    def search(self, query: str, top_k: int = 10, fetch_k: int = 20) -> List[SearchResult]:
         """Fetch top candidates from both retrievers and fuse them using RRF."""
         # 1. Retrieve top candidates from both models
         bm25_results = self.bm25_retriever.search(query, top_k=fetch_k)

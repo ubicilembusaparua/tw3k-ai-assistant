@@ -29,10 +29,8 @@ class QdrantRetriever:
         else:
             try:
                 self.client = QdrantClient(url=url, prefer_grpc=prefer_grpc, timeout=5.0)
-                # Test connection by fetching collections
                 self.client.get_collections()
             except Exception:
-                # Fallback to in-memory mode if Docker container is not active
                 self.client = QdrantClient(":memory:")
 
         # Create Qdrant collection if it does not exist
@@ -55,8 +53,15 @@ class QdrantRetriever:
         if not chunks:
             return
 
-        # Skip indexing if points already exist in Qdrant DB and force flag is False
-        if not force and self.get_point_count() >= len(chunks):
+        # If force is True, recreate collection to purge stale vectors from previous dataset versions
+        if force:
+            if self.client.collection_exists(self.collection_name):
+                self.client.delete_collection(self.collection_name)
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=VectorParams(size=self.vector_dim, distance=Distance.COSINE),
+            )
+        elif self.get_point_count() > 0:
             print(f"Skipping indexing: Collection '{self.collection_name}' already contains {self.get_point_count()} points.")
             return
 
@@ -84,7 +89,6 @@ class QdrantRetriever:
 
         query_vector = self.embedder.encode(query, normalize=True).tolist()
 
-        # Execute vector similarity query in Qdrant using query_points (qdrant-client >= 1.9)
         if hasattr(self.client, "query_points"):
             response = self.client.query_points(
                 collection_name=self.collection_name,

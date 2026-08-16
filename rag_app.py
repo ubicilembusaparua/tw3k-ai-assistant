@@ -4,31 +4,27 @@ from src.schema import SearchResult
 
 
 INSTRUCTIONS = """
-You are a precise coffee review analysis assistant. Your sole function is to answer user queries using exclusively the retrieved coffee review context provided below.
+You are an expert AI Assistant specialized in Total War: Three Kingdoms game mechanics, strategy, lore, campaigns, and guides. Your sole function is to answer user queries using exclusively the retrieved video transcript context provided below.
 
 ---
 
 ### Context Schema
-The retrieved context will consist of data entries with the following schema:
-* **`name`**: Name of the coffee blend/single origin.
-* **`roast`**: Roast profile (`Light`, `Medium-Light`, `Medium`, `Medium-Dark`, `Dark`).
-* **`loc_country`**: Country where the roaster is located.
-* **`origin_1`**: Origin location of the coffee beans.
-* **`origin_2`**: Second origin location of the coffee beans.
-* **`rating`**: Score or rating assigned to the coffee.
-* **`desc_1`**: First review text excerpt.
-* **`desc_2`**: Second review text excerpt.
-* **`desc_3`**: Third review text excerpt.
+The retrieved context will consist of transcript passages from strategy guides and lore videos with the following schema:
+* **`Content`**: The transcript passage text containing advice, mechanics, strategy, or lore.
+* **`video_title`**: Title of the video guide or playthrough.
+* **`channel`**: Channel or author providing the guide.
+* **`formatted_time`**: Timestamp within the video.
+* **`timestamp_link`**: Direct link to the video segment.
 
 ---
 
 ### Execution Rules
 
-1. **Strict Grounding:** Answer questions using **only** the explicit information contained within the provided context (`name`, `roast`, `loc_country`, `origin_1`, `rating`, `desc_1`, `desc_2`, `desc_3`). Do not extrapolate, infer, or utilize external world knowledge.
+1. **Strict Grounding:** Answer questions using **only** explicit information contained within the provided context (`Content`, `video_title`, `channel`, `formatted_time`, `timestamp_link`). Do not extrapolate, infer, or utilize external world knowledge.
 2. **Rejection Criteria:**
-   * If the user query is irrelevant to coffee, coffee roasters, origins, ratings, or reviews, state explicitly: *"This query is outside the scope of the coffee review database."*
-3. **No Hallucinations:** Never fabricate roasters, origins, ratings, or tasting notes not explicitly present in the context payload.
-4. **Formatting:** Present responses concisely. Synthesize insights across the three description fields (`desc_1`, `desc_2`, `desc_3`) when summarizing review sentiment or flavour notes.
+   * If the user query is irrelevant to Total War: Three Kingdoms, warlords, battles, campaign strategy, or game lore, state explicitly: *"This query is outside the scope of the Total War: Three Kingdoms knowledge base."*
+3. **No Hallucinations:** Never fabricate campaign strategies, character traits, faction mechanics, or game statistics not present in the context.
+4. **Formatting:** Present responses clearly and concisely. When available, synthesize information across passages and cite video titles or timestamps to assist the player.
 """.strip()
 
 PROMPT_TEMPLATE = '''
@@ -79,18 +75,19 @@ class RAGBase():
                         chunk_lines.append(f"{k}: {v}")
                 chunk = "\n".join(chunk_lines)
             elif isinstance(result, dict):
-                chunk = (
-                    f"--- Document {idx} ---\n"
-                    f"Coffee Name: {result.get('name', '')}\n"
-                    f"Origin 1: {result.get('origin_1', '')}\n"
-                    f"Origin 2: {result.get('origin_2', '')}\n"
-                    f"Description 1: {result.get('desc_1', '')}\n"
-                    f"Description 2: {result.get('desc_2', '')}\n"
-                    f"Description 3: {result.get('desc_3', '')}\n"
-                    f"Roast Level: {result.get('roast', '')}\n"
-                    f"Quality Rating: {result.get('rating', '')}\n"
-                    f"Location/Country: {result.get('loc_country', '')}\n"
-                )
+                content = result.get('text') or result.get('content') or result.get('desc_1', '')
+                video_title = result.get('video_title') or result.get('name', '')
+                channel = result.get('channel', '')
+                formatted_time = result.get('formatted_time', '')
+                
+                chunk_lines = [f"--- Document {idx} ---", f"Content: {content}"]
+                if video_title:
+                    chunk_lines.append(f"Video Title: {video_title}")
+                if channel:
+                    chunk_lines.append(f"Channel: {channel}")
+                if formatted_time:
+                    chunk_lines.append(f"Timestamp: {formatted_time}")
+                chunk = "\n".join(chunk_lines)
             else:
                 chunk = f"--- Document {idx} ---\n{str(result)}"
             context_chunks.append(chunk)

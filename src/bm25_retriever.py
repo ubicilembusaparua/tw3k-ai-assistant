@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Optional, Sequence
 from rank_bm25 import BM25Okapi
 from src.schema import DocumentChunk, SearchResult
 from src.dataset import load_dataset
@@ -7,8 +7,8 @@ from src.dataset import load_dataset
 class BM25Retriever:
     """Lexical keyword-based retrieval using BM25Okapi."""
 
-    def __init__(self):
-        self.chunks = load_dataset()
+    def __init__(self, chunks: Optional[Sequence[DocumentChunk]] = None):
+        self.chunks = list(chunks) if chunks is not None else load_dataset()
         # Tokenize corpus into lowercase word tokens
         self.corpus_tokens = [self._tokenize(chunk.content) for chunk in self.chunks]
         # Initialize BM25 search index

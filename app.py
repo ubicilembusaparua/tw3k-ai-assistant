@@ -62,12 +62,12 @@ if last_response is not None:
 
     st.success("Completed!")
     st.write(last_response["answer"])
-    st.write(f"Response time: {record.response_time:.2f}s")
-    st.write(f"Prompt tokens: {record.prompt_tokens}")
-    st.write(f"Completion tokens: {record.completion_tokens}")
-    st.write(f"Cost: ${record.cost:.4f}")
-    st.write(f"Relevance: {last_response['relevance']}")
-    st.write(f"Explanation: {last_response['explanation']}")
+    # st.write(f"Response time: {record.response_time:.2f}s")
+    # st.write(f"Prompt tokens: {record.prompt_tokens}")
+    # st.write(f"Completion tokens: {record.completion_tokens}")
+    # st.write(f"Cost: ${record.cost:.4f}")
+    # st.write(f"Relevance: {last_response['relevance']}")
+    # st.write(f"Explanation: {last_response['explanation']}")
 
 if conversation_id is not None:
     st.subheader("Was this answer helpful?")

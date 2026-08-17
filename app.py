@@ -11,7 +11,7 @@ def get_assistant(use_reranker: bool):
 st.sidebar.header("Retrieval settings")
 use_reranker = st.sidebar.checkbox(
     "Use cross-encoder reranker",
-    value=False,
+    value=True,
     help="Improves result ordering but loads an additional model.",
 )
 assistant = get_assistant(use_reranker)

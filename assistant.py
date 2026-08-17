@@ -10,7 +10,12 @@ from metrics import RAGWithMetrics
 def create_assistant(*, rerank: bool = False):
     load_dotenv()
 
-    return RAGWithMetrics.from_src(rerank=rerank, llm_client=OpenAI(), query_rewriter=QueryRewriter(OpenAI()))
+    client = OpenAI()
+    return RAGWithMetrics.from_src(
+        rerank=rerank,
+        llm_client=client,
+        query_rewriter=QueryRewriter(client),
+    )
 
 if __name__ == "__main__":
     assistant = create_assistant()

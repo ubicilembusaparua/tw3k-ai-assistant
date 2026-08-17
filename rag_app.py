@@ -15,6 +15,7 @@ from src.hybrid_retriever import HybridRetriever
 from src.qdrant_retriever import QdrantRetriever
 from src.reranker import Reranker
 from src.schema import SearchResult
+from query_rewriter import QueryRewriter
 from utils import calculate_rag_cost
 
 
@@ -71,6 +72,7 @@ class RAGBase:
         bm25_retriever: Optional[BM25Retriever] = None,
         qdrant_retriever: Optional[QdrantRetriever] = None,
         rrf_k: int = 60,
+        query_rewriter: Optional[QueryRewriter] = None,
     ) -> None:
         if index is not None and (bm25_retriever is not None or qdrant_retriever is not None):
             raise ValueError("Pass either index or both component retrievers, not both.")
@@ -87,6 +89,7 @@ class RAGBase:
         self.instructions = instructions
         self.prompt_template = prompt_template
         self.model = model
+        self.query_rewriter = query_rewriter
 
     @classmethod
     def from_src(
@@ -101,6 +104,7 @@ class RAGBase:
         instructions: str = INSTRUCTIONS,
         prompt_template: str = PROMPT_TEMPLATE,
         model: str = "gpt-5.4-mini",
+        query_rewriter: Optional[QueryRewriter] = None,
     ) -> "RAGBase":
         """Build the pipeline from the retrievers implemented in ``src``.
 
@@ -126,6 +130,7 @@ class RAGBase:
             instructions=instructions,
             prompt_template=prompt_template,
             model=model,
+            query_rewriter=query_rewriter,
         )
 
     def hybrid_search(
@@ -233,6 +238,11 @@ class RAGBase:
         )
 
     def rag(self, query: str) -> Any:
-        search_results = self.search(query)
+        retrieval_query = query
+        if self.query_rewriter is not None:
+            retrieval_query = self.query_rewriter.rewrite(query)
+
+        search_results = self.search(retrieval_query)
+
         prompt = self.build_prompt(query, search_results)
         return self.llm(prompt)

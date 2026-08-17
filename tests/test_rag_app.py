@@ -99,6 +99,36 @@ def test_rag_base_search_with_reranker():
     assert results[0].chunk.id == "2"
 
 
+def test_rag_base_rewrites_query_for_retrieval_but_answers_original_query():
+    mock_retriever = MagicMock()
+    mock_retriever.search.return_value = []
+
+    mock_rewriter = MagicMock()
+    mock_rewriter.rewrite.return_value = "food management Total War Three Kingdoms"
+
+    mock_llm_client = MagicMock()
+    mock_llm_client.responses.create.return_value = SimpleNamespace(
+        output_text="Grounded answer"
+    )
+
+    app = RAGBase(
+        index=mock_retriever,
+        query_rewriter=mock_rewriter,
+        llm_client=mock_llm_client,
+    )
+
+    response = app.rag("How do I manage food?")
+
+    mock_rewriter.rewrite.assert_called_once_with("How do I manage food?")
+    mock_retriever.search.assert_called_once_with(
+        "food management Total War Three Kingdoms",
+        top_k=5,
+    )
+    answer_prompt = mock_llm_client.responses.create.call_args.kwargs["input"][1]["content"]
+    assert "QUESTION: How do I manage food?" in answer_prompt
+    assert response.output_text == "Grounded answer"
+
+
 def test_calculate_rag_cost_from_responses_usage():
     cost = calculate_rag_cost(
         {

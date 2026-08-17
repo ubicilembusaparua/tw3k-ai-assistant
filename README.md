@@ -16,7 +16,7 @@ uv run python evaluate.py
 ## Streamlit application
 
 Run the Streamlit application to use the assistant or inspect captured latency,
-token usage, cost, model usage, judge relevance, and user feedback. Use the
+token usage, cost, model usage, and user feedback. Use the
 interface selector in the sidebar to switch between Chat and LLM metrics:
 
 ```bash

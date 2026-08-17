@@ -19,7 +19,6 @@ from db_init import get_db_connection
 
 REQUEST_MODEL = "gpt-5.4-mini"
 SEEDED_QUESTION_PREFIX = "[Synthetic request "
-JUDGE_RELEVANCE = ("RELEVANT", "PARTLY_RELEVANT", "NON_RELEVANT")
 TOPICS = (
     "public order",
     "corruption reduction",
@@ -104,41 +103,22 @@ def build_synthetic_feedback(
     request_rows: list[dict[str, object]],
     *,
     seed: int = 42,
-) -> list[tuple[int, str, str | None, str, int | None, datetime]]:
-    """Create one unique judge row and one unique user vote per request."""
+) -> list[tuple[int, int, datetime]]:
+    """Create one unique user vote per request."""
 
     if len(conversation_ids) != len(request_rows):
         raise ValueError("Conversation IDs and request rows must have equal length")
 
     generator = random.Random(seed)
     feedback_rows = []
-    for index, (conversation_id, request) in enumerate(zip(conversation_ids, request_rows), start=1):
+    for conversation_id, request in zip(conversation_ids, request_rows):
         request_timestamp = request["timestamp"]
         assert isinstance(request_timestamp, datetime)
-
-        relevance = generator.choices(
-            JUDGE_RELEVANCE,
-            weights=(0.60, 0.25, 0.15),
-            k=1,
-        )[0]
-        feedback_rows.append(
-            (
-                conversation_id,
-                "judge",
-                relevance,
-                f"Synthetic judge feedback #{index:03d}: {relevance.lower()} response.",
-                None,
-                request_timestamp,
-            )
-        )
 
         score = generator.choices((1, -1), weights=(0.75, 0.25), k=1)[0]
         feedback_rows.append(
             (
                 conversation_id,
-                "user",
-                None,
-                f"Synthetic user feedback #{index:03d}: score {score:+d}.",
                 score,
                 request_timestamp + timedelta(microseconds=1),
             )
@@ -208,9 +188,8 @@ def replace_synthetic_data(count: int = 100, *, seed: int = 42) -> tuple[int, in
             cur.executemany(
                 """
                 INSERT INTO feedback (
-                    conversation_id, source, relevance,
-                    explanation, score, timestamp
-                ) VALUES (%s, %s, %s, %s, %s, %s)
+                    conversation_id, score, timestamp
+                ) VALUES (%s, %s, %s)
                 """,
                 feedback_rows,
             )
@@ -235,22 +214,22 @@ def replace_synthetic_data(count: int = 100, *, seed: int = 42) -> tuple[int, in
 
             cur.execute(
                 """
-                SELECT COUNT(*), COUNT(DISTINCT explanation), COUNT(DISTINCT timestamp)
+                SELECT COUNT(*), COUNT(DISTINCT conversation_id), COUNT(DISTINCT timestamp)
                 FROM feedback
                 WHERE conversation_id = ANY(%s)
                 """,
                 (conversation_ids,),
             )
-            feedback_count, unique_explanations, unique_feedback_timestamps = cur.fetchone()
-            if (feedback_count, unique_explanations, unique_feedback_timestamps) != (
-                count * 2,
-                count * 2,
-                count * 2,
+            feedback_count, unique_conversations, unique_feedback_timestamps = cur.fetchone()
+            if (feedback_count, unique_conversations, unique_feedback_timestamps) != (
+                count,
+                count,
+                count,
             ):
                 raise RuntimeError("Synthetic feedback uniqueness validation failed")
 
         conn.commit()
-        return count, count * 2
+        return count, count
     except Exception:
         conn.rollback()
         raise

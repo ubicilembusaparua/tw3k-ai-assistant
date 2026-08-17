@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from dashboard_utils import (
     daily_metrics,
     filter_records,
-    judge_metrics,
     model_metrics,
     summarize_records,
 )
@@ -16,7 +15,6 @@ def make_record(
     day: int,
     *,
     score: int | None = None,
-    relevance: str | None = None,
 ) -> ConversationMetric:
     return ConversationMetric(
         id=record_id,
@@ -31,7 +29,6 @@ def make_record(
         response_time=2.0,
         cost=0.001,
         timestamp=datetime(2026, 8, day, tzinfo=timezone.utc),
-        judge_relevance=relevance,
         user_score=score,
     )
 
@@ -58,11 +55,10 @@ def test_summarize_records_calculates_cost_latency_tokens_and_feedback():
 
 def test_aggregations_group_records_for_dashboard_charts():
     records = [
-        make_record(1, "model-a", 1, relevance="RELEVANT"),
-        make_record(2, "model-a", 1, relevance="RELEVANT"),
-        make_record(3, "model-b", 2, relevance="NON_RELEVANT"),
+        make_record(1, "model-a", 1),
+        make_record(2, "model-a", 1),
+        make_record(3, "model-b", 2),
     ]
 
     assert [row["requests"] for row in daily_metrics(records)] == [2, 1]
     assert [row["model"] for row in model_metrics(records)] == ["model-a", "model-b"]
-    assert [row["requests"] for row in judge_metrics(records)] == [2, 0, 1, 0]

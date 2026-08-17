@@ -14,22 +14,62 @@ def get_db_connection():
     )
 
 def init_feedback():
+    """Create or migrate the feedback table to user scores only."""
+
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DROP TABLE IF EXISTS feedback")
-
             cur.execute("""
-                CREATE TABLE feedback (
+                CREATE TABLE IF NOT EXISTS feedback (
                     id SERIAL PRIMARY KEY,
-                    conversation_id INTEGER REFERENCES conversations(id),
-                    source TEXT NOT NULL,
-                    relevance TEXT,
-                    explanation TEXT,
-                    score INTEGER,
+                    conversation_id INTEGER NOT NULL REFERENCES conversations(id),
+                    score INTEGER NOT NULL CHECK (score IN (-1, 1)),
                     timestamp TIMESTAMP WITH TIME ZONE NOT NULL
                 )
             """)
+
+            cur.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'feedback'
+                """
+            )
+            columns = {row[0] for row in cur.fetchall()}
+            if "source" in columns:
+                cur.execute(
+                    """
+                    DELETE FROM feedback
+                    WHERE source IS DISTINCT FROM 'user' OR score IS NULL
+                    """
+                )
+                cur.execute(
+                    """
+                    ALTER TABLE feedback
+                    DROP COLUMN IF EXISTS source,
+                    DROP COLUMN IF EXISTS relevance,
+                    DROP COLUMN IF EXISTS explanation
+                    """
+                )
+
+            cur.execute("ALTER TABLE feedback ALTER COLUMN conversation_id SET NOT NULL")
+            cur.execute("ALTER TABLE feedback ALTER COLUMN score SET NOT NULL")
+            cur.execute(
+                """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_constraint
+                        WHERE conname = 'feedback_score_check'
+                          AND conrelid = 'feedback'::regclass
+                    ) THEN
+                        ALTER TABLE feedback
+                        ADD CONSTRAINT feedback_score_check CHECK (score IN (-1, 1));
+                    END IF;
+                END $$
+                """
+            )
         conn.commit()
     finally:
         conn.close()

@@ -15,7 +15,7 @@ class Stats:
 
 @dataclass(frozen=True)
 class ConversationMetric:
-    """A conversation row enriched with its latest feedback values."""
+    """A conversation row enriched with its latest user feedback."""
 
     id: int
     question: str
@@ -29,8 +29,6 @@ class ConversationMetric:
     response_time: float
     cost: float
     timestamp: datetime
-    judge_relevance: Optional[str] = None
-    judge_explanation: Optional[str] = None
     user_score: Optional[int] = None
 
 def get_stats():
@@ -107,14 +105,12 @@ def _row_to_conversation_metric(row) -> ConversationMetric:
         response_time=row[9],
         cost=row[10],
         timestamp=row[11],
-        judge_relevance=row[12],
-        judge_explanation=row[13],
-        user_score=row[14],
+        user_score=row[12],
     )
 
 
 def get_conversation_metrics(limit=1000) -> list[ConversationMetric]:
-    """Return recent conversations with their latest judge and user feedback."""
+    """Return recent conversations with their latest user feedback."""
 
     if limit <= 0:
         return []
@@ -128,23 +124,13 @@ def get_conversation_metrics(limit=1000) -> list[ConversationMetric]:
                        c.instructions, c.prompt,
                        c.prompt_tokens, c.completion_tokens, c.total_tokens,
                        c.response_time, c.cost, c.timestamp,
-                       judge_feedback.relevance,
-                       judge_feedback.explanation,
                        user_feedback.score
                 FROM conversations AS c
-                LEFT JOIN LATERAL (
-                    SELECT f.relevance, f.explanation
-                    FROM feedback AS f
-                    WHERE f.conversation_id = c.id
-                      AND f.source = 'judge'
-                    ORDER BY f.timestamp DESC, f.id DESC
-                    LIMIT 1
-                ) AS judge_feedback ON TRUE
                 LEFT JOIN LATERAL (
                     SELECT f.score
                     FROM feedback AS f
                     WHERE f.conversation_id = c.id
-                      AND f.source = 'user'
+                      AND f.score IS NOT NULL
                     ORDER BY f.timestamp DESC, f.id DESC
                     LIMIT 1
                 ) AS user_feedback ON TRUE

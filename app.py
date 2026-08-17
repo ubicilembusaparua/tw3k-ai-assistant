@@ -46,13 +46,13 @@ def render_feedback(conversation_id: int) -> None:
 
         with helpful:
             if st.button("Helpful", key=f"feedback_up_{conversation_id}", width="stretch"):
-                save_feedback(conversation_id, "user", score=1)
+                save_feedback(conversation_id, 1)
                 st.session_state.feedback_by_conversation[conversation_id] = 1
                 st.rerun()
 
         with not_helpful:
             if st.button("Not helpful", key=f"feedback_down_{conversation_id}", width="stretch"):
-                save_feedback(conversation_id, "user", score=-1)
+                save_feedback(conversation_id, -1)
                 st.session_state.feedback_by_conversation[conversation_id] = -1
                 st.rerun()
     else:

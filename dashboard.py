@@ -9,7 +9,6 @@ import streamlit as st
 from dashboard_utils import (
     daily_metrics,
     filter_records,
-    judge_metrics,
     model_metrics,
     recent_rows,
     summarize_records,
@@ -27,7 +26,7 @@ def load_metrics(limit: int = 5000) -> list[ConversationMetric]:
 def render_dashboard() -> None:
     """Render the metrics dashboard inside the current Streamlit page."""
 
-    st.title("TW3K Assistant - LLM Metrics")
+    st.title("TW3K Assistant Dashboard")
     st.caption("Operational and user-feedback metrics captured from the conversation log.")
 
     with st.sidebar:
@@ -136,15 +135,6 @@ def render_dashboard() -> None:
         st.bar_chart(model_rows, x="model", y="cost")
     st.dataframe(model_rows, hide_index=True, width="stretch")
 
-    st.subheader("Answer quality and feedback")
-    judge_rows = judge_metrics(filtered)
-    quality_left, quality_right = st.columns(2)
-    with quality_left:
-        st.bar_chart(judge_rows, x="relevance", y="requests")
-    with quality_right:
-        st.write("Judge relevance")
-        st.dataframe(judge_rows, hide_index=True, width="stretch")
-
     st.subheader("Recent requests")
     st.dataframe(
         recent_rows(filtered[:100]),
@@ -176,11 +166,6 @@ def render_dashboard() -> None:
             metadata[2].metric("Completion tokens", f"{record.completion_tokens:,}")
             metadata[3].metric("Cost", f"${record.cost:.6f}")
             metadata[4].metric("User score", "-" if record.user_score is None else str(record.user_score))
-
-            if record.judge_relevance:
-                st.write(f"**Judge:** {record.judge_relevance}")
-                if record.judge_explanation:
-                    st.write(record.judge_explanation)
 
 
 def main() -> None:

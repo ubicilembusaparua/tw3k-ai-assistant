@@ -21,8 +21,7 @@ def test_synthetic_requests_and_feedback_are_unique():
     assert len({row["prompt"] for row in requests}) == 100
     assert len({row["timestamp"] for row in requests}) == 100
 
-    assert len(feedback) == 200
-    assert len({row[3] for row in feedback}) == 200
-    assert len({row[5] for row in feedback}) == 200
-    assert sum(row[1] == "judge" for row in feedback) == 100
-    assert sum(row[1] == "user" for row in feedback) == 100
+    assert len(feedback) == 100
+    assert len({row[0] for row in feedback}) == 100
+    assert len({row[2] for row in feedback}) == 100
+    assert all(row[1] in (-1, 1) for row in feedback)

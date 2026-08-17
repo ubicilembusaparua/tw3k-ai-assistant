@@ -114,17 +114,6 @@ def model_metrics(records: Sequence[ConversationMetric]) -> list[dict[str, objec
     return rows
 
 
-def judge_metrics(records: Sequence[ConversationMetric]) -> list[dict[str, object]]:
-    """Return a stable relevance distribution for charting."""
-
-    labels = ("RELEVANT", "PARTLY_RELEVANT", "NON_RELEVANT", "NOT_JUDGED")
-    counts = {label: 0 for label in labels}
-    for record in records:
-        label = record.judge_relevance or "NOT_JUDGED"
-        counts[label] = counts.get(label, 0) + 1
-    return [{"relevance": label, "requests": counts[label]} for label in labels]
-
-
 def recent_rows(records: Sequence[ConversationMetric]) -> list[dict[str, object]]:
     """Create compact, user-facing rows for the recent requests table."""
 
@@ -138,7 +127,6 @@ def recent_rows(records: Sequence[ConversationMetric]) -> list[dict[str, object]
                 "response_time_s": round(record.response_time, 3),
                 "total_tokens": record.total_tokens,
                 "cost_usd": round(record.cost, 6),
-                "judge": record.judge_relevance or "NOT_JUDGED",
                 "user_score": record.user_score,
             }
         )

@@ -13,13 +13,14 @@ uv run pytest
 uv run python evaluate.py
 ```
 
-## LLM metrics dashboard
+## Streamlit application
 
-Run the Streamlit dashboard to inspect captured latency, token usage, cost,
-model usage, judge relevance, and user feedback:
+Run the Streamlit application to use the assistant or inspect captured latency,
+token usage, cost, model usage, judge relevance, and user feedback. Use the
+interface selector in the sidebar to switch between Chat and LLM metrics:
 
 ```bash
-uv run streamlit run dashboard.py
+uv run streamlit run app.py
 ```
 
 The dashboard reads the PostgreSQL conversation log configured through the

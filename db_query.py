@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
 
 from db_init import get_db_connection
 from metrics import LLMCallRecord
@@ -10,6 +12,27 @@ class Stats:
     total_cost: float
     avg_tokens: float
 
+
+@dataclass(frozen=True)
+class ConversationMetric:
+    """A conversation row enriched with its latest feedback values."""
+
+    id: int
+    question: str
+    answer: str
+    model: str
+    instructions: str
+    prompt: str
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    response_time: float
+    cost: float
+    timestamp: datetime
+    judge_relevance: Optional[str] = None
+    judge_explanation: Optional[str] = None
+    user_score: Optional[int] = None
+
 def get_stats():
     conn = get_db_connection()
     try:
@@ -17,9 +40,9 @@ def get_stats():
             cur.execute("""
                 SELECT
                     COUNT(*),
-                    AVG(response_time),
-                    SUM(cost),
-                    AVG(total_tokens)
+                    COALESCE(AVG(response_time), 0),
+                    COALESCE(SUM(cost), 0),
+                    COALESCE(AVG(total_tokens), 0)
                 FROM conversations
             """)
             row = cur.fetchone()
@@ -27,10 +50,10 @@ def get_stats():
         conn.close()
 
     return Stats(
-        total=row[0],
-        avg_response_time=row[1],
-        total_cost=row[2],
-        avg_tokens=row[3],
+        total=int(row[0] or 0),
+        avg_response_time=float(row[1] or 0),
+        total_cost=float(row[2] or 0),
+        avg_tokens=float(row[3] or 0),
     )
 
 def row_to_record(row):
@@ -68,6 +91,73 @@ def get_conversations(limit=10):
         conn.close()
 
     return [row_to_record(row) for row in rows]
+
+
+def _row_to_conversation_metric(row) -> ConversationMetric:
+    return ConversationMetric(
+        id=row[0],
+        question=row[1],
+        answer=row[2],
+        model=row[3],
+        instructions=row[4],
+        prompt=row[5],
+        prompt_tokens=row[6],
+        completion_tokens=row[7],
+        total_tokens=row[8],
+        response_time=row[9],
+        cost=row[10],
+        timestamp=row[11],
+        judge_relevance=row[12],
+        judge_explanation=row[13],
+        user_score=row[14],
+    )
+
+
+def get_conversation_metrics(limit=1000) -> list[ConversationMetric]:
+    """Return recent conversations with their latest judge and user feedback."""
+
+    if limit <= 0:
+        return []
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT c.id, c.question, c.answer, c.model,
+                       c.instructions, c.prompt,
+                       c.prompt_tokens, c.completion_tokens, c.total_tokens,
+                       c.response_time, c.cost, c.timestamp,
+                       judge_feedback.relevance,
+                       judge_feedback.explanation,
+                       user_feedback.score
+                FROM conversations AS c
+                LEFT JOIN LATERAL (
+                    SELECT f.relevance, f.explanation
+                    FROM feedback AS f
+                    WHERE f.conversation_id = c.id
+                      AND f.source = 'judge'
+                    ORDER BY f.timestamp DESC, f.id DESC
+                    LIMIT 1
+                ) AS judge_feedback ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT f.score
+                    FROM feedback AS f
+                    WHERE f.conversation_id = c.id
+                      AND f.source = 'user'
+                    ORDER BY f.timestamp DESC, f.id DESC
+                    LIMIT 1
+                ) AS user_feedback ON TRUE
+                ORDER BY c.timestamp DESC
+                LIMIT %s
+                """,
+                (int(limit),),
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    return [_row_to_conversation_metric(row) for row in rows]
 
 if __name__ == "__main__":
     records = get_conversations()

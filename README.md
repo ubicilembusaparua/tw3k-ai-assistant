@@ -12,3 +12,15 @@ uv sync
 uv run pytest
 uv run python evaluate.py
 ```
+
+## LLM metrics dashboard
+
+Run the Streamlit dashboard to inspect captured latency, token usage, cost,
+model usage, judge relevance, and user feedback:
+
+```bash
+uv run streamlit run dashboard.py
+```
+
+The dashboard reads the PostgreSQL conversation log configured through the
+`POSTGRES_*` environment variables.

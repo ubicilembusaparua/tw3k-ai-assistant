@@ -8,7 +8,7 @@ the complete retrieval flow through :class:`RAGBase`.
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Sequence
+from typing import Any, Iterator, List, Optional, Sequence
 
 from src.bm25_retriever import BM25Retriever
 from src.hybrid_retriever import HybridRetriever
@@ -206,14 +206,33 @@ class RAGBase:
         if self.llm_client is None:
             raise RuntimeError("An llm_client is required to generate an answer.")
 
-        input_messages = [
+        return self.llm_client.responses.create(
+            model=self.model,
+            input=self._build_llm_input(prompt),
+        )
+
+    def llm_stream(self, prompt: str) -> Iterator[str]:
+        """Yield answer text deltas from the Responses API stream."""
+
+        if self.llm_client is None:
+            raise RuntimeError("An llm_client is required to generate an answer.")
+
+        with self.llm_client.responses.stream(
+            model=self.model,
+            input=self._build_llm_input(prompt),
+        ) as stream:
+            for event in stream:
+                if getattr(event, "type", None) != "response.output_text.delta":
+                    continue
+                delta = getattr(event, "delta", "")
+                if delta:
+                    yield delta
+
+    def _build_llm_input(self, prompt: str) -> list[dict[str, str]]:
+        return [
             {"role": "developer", "content": self.instructions},
             {"role": "user", "content": prompt},
         ]
-        return self.llm_client.responses.create(
-            model=self.model,
-            input=input_messages,
-        )
 
     def rag(self, query: str) -> Any:
         retrieval_query = query
@@ -224,3 +243,14 @@ class RAGBase:
 
         prompt = self.build_prompt(query, search_results)
         return self.llm(prompt)
+
+    def rag_stream(self, query: str) -> Iterator[str]:
+        """Run retrieval and stream the generated answer text."""
+
+        retrieval_query = query
+        if self.query_rewriter is not None:
+            retrieval_query = self.query_rewriter.rewrite(query)
+
+        search_results = self.search(retrieval_query)
+        prompt = self.build_prompt(query, search_results)
+        yield from self.llm_stream(prompt)

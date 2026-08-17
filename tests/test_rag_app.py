@@ -4,8 +4,27 @@ from types import SimpleNamespace
 import pytest
 
 from rag_app import RAGBase
+from metrics import RAGWithMetrics
 from src.schema import DocumentChunk, SearchResult
 from utils import calculate_rag_cost
+
+
+class FakeResponseStream:
+    def __init__(self, events, response):
+        self.events = events
+        self.response = response
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def __iter__(self):
+        return iter(self.events)
+
+    def get_final_response(self):
+        return self.response
 
 
 def test_rag_base_search_with_hybrid_retriever():
@@ -127,6 +146,42 @@ def test_rag_base_rewrites_query_for_retrieval_but_answers_original_query():
     answer_prompt = mock_llm_client.responses.create.call_args.kwargs["input"][1]["content"]
     assert "QUESTION: How do I manage food?" in answer_prompt
     assert response.output_text == "Grounded answer"
+
+
+def test_rag_with_metrics_streams_answer_and_records_response():
+    mock_retriever = MagicMock()
+    mock_retriever.search.return_value = []
+    mock_response = SimpleNamespace(
+        output_text="Grounded answer",
+        usage=SimpleNamespace(
+            input_tokens=10,
+            output_tokens=4,
+            total_tokens=14,
+        ),
+    )
+    stream = FakeResponseStream(
+        events=[
+            SimpleNamespace(type="response.created"),
+            SimpleNamespace(type="response.output_text.delta", delta="Grounded "),
+            SimpleNamespace(type="response.output_text.delta", delta="answer"),
+        ],
+        response=mock_response,
+    )
+    mock_client = SimpleNamespace(
+        responses=SimpleNamespace(stream=MagicMock(return_value=stream)),
+    )
+
+    app = RAGWithMetrics(
+        index=mock_retriever,
+        llm_client=mock_client,
+        rerank=False,
+        use_query_rewriter=False,
+    )
+
+    assert list(app.rag_stream("How do I manage food?")) == ["Grounded ", "answer"]
+    assert app.last_call.answer == "Grounded answer"
+    assert app.last_call.prompt_tokens == 10
+    mock_client.responses.stream.assert_called_once()
 
 
 def test_rag_base_builds_default_pipeline_and_query_rewriter(monkeypatch):

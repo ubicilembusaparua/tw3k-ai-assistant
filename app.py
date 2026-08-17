@@ -6,7 +6,6 @@ from assistant import create_assistant
 from dashboard import render_dashboard
 from db_feedback import save_feedback
 from db_save import save_conversation
-from judge import evaluate_relevance
 
 
 st.set_page_config(
@@ -38,10 +37,6 @@ def render_response_details(message: dict) -> None:
         metrics[2].metric("Completion tokens", f"{record.completion_tokens:,}")
         metrics[3].metric("Cost", f"${record.cost:.6f}")
 
-        st.caption(f"Judge relevance: {message['relevance']}")
-        if message["explanation"]:
-            st.write(message["explanation"])
-
 
 def render_feedback(conversation_id: int) -> None:
     feedback = st.session_state.feedback_by_conversation.get(conversation_id)
@@ -64,58 +59,71 @@ def render_feedback(conversation_id: int) -> None:
         st.caption("Thanks for your feedback.")
 
 
+def render_message(message: dict, *, show_feedback: bool = False) -> None:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+        if message["role"] == "assistant" and not message.get("error"):
+            render_response_details(message)
+            if show_feedback:
+                render_feedback(message["conversation_id"])
+
+
 def render_chat() -> None:
     st.title("TW3K Assistant")
     st.caption("Ask about Total War: Three Kingdoms strategy, mechanics, and campaigns.")
 
-    question = st.chat_input("Ask a question...")
-    if question:
-        st.session_state.messages.append({"role": "user", "content": question})
-
-        try:
-            with st.spinner("Thinking..."):
-                assistant = get_assistant()
-                answer = assistant.rag(question)
-                record = assistant.last_call
-                conversation_id = save_conversation(record, question)
-                relevance, explanation = evaluate_relevance(question, answer)
-                save_feedback(
-                    conversation_id,
-                    "judge",
-                    relevance=relevance,
-                    explanation=explanation,
-                )
-
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": answer,
-                    "record": record,
-                    "conversation_id": conversation_id,
-                    "relevance": relevance,
-                    "explanation": explanation,
-                }
-            )
-        except Exception:
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": "I couldn't process that request. Please try again.",
-                    "error": True,
-                }
-            )
-            st.error("The request could not be completed.")
-
     for index, message in enumerate(st.session_state.messages):
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        render_message(
+            message,
+            show_feedback=(
+                message["role"] == "assistant"
+                and not message.get("error")
+                and index == len(st.session_state.messages) - 1
+            ),
+        )
 
-            if message["role"] == "assistant" and not message.get("error"):
-                render_response_details(message)
+    question = st.chat_input("Ask a question...")
+    if not question:
+        return
 
-                is_latest_reply = index == len(st.session_state.messages) - 1
-                if is_latest_reply:
-                    render_feedback(message["conversation_id"])
+    user_message = {"role": "user", "content": question}
+    st.session_state.messages.append(user_message)
+    render_message(user_message)
+
+    try:
+        assistant = get_assistant()
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                streamed_answer = st.write_stream(assistant.rag_stream(question))
+
+            record = assistant.last_call
+            answer = (
+                streamed_answer
+                if isinstance(streamed_answer, str)
+                else "".join(str(part) for part in streamed_answer)
+            )
+            answer = answer or record.answer
+            conversation_id = save_conversation(record, question)
+            assistant_message = {
+                "role": "assistant",
+                "content": answer,
+                "record": record,
+                "conversation_id": conversation_id,
+            }
+            render_response_details(assistant_message)
+            render_feedback(conversation_id)
+
+        st.session_state.messages.append(assistant_message)
+    except Exception:
+        error_message = {
+            "role": "assistant",
+            "content": "I couldn't process that request. Please try again.",
+            "error": True,
+        }
+        st.session_state.messages.append(error_message)
+        render_message(error_message)
+        st.error("The request could not be completed.")
 
 
 initialize_state()

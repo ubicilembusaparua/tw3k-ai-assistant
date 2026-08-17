@@ -1,6 +1,7 @@
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Iterator
 
 from rag_app import RAGBase
 
@@ -37,15 +38,31 @@ class RAGWithMetrics(RAGBase):
         return response.output_text
 
     def _call_llm(self, prompt):
-        input_messages = [
-            {"role": "developer", "content": self.instructions},
-            {"role": "user", "content": prompt}
-        ]
         response = self.llm_client.responses.create(
             model=self.model,
-            input=input_messages
+            input=self._build_llm_input(prompt),
         )
         return response
+
+    def llm_stream(self, prompt: str) -> Iterator[str]:
+        """Stream answer text and record the completed response metrics."""
+
+        start_time = time.perf_counter()
+        with self.llm_client.responses.stream(
+            model=self.model,
+            input=self._build_llm_input(prompt),
+        ) as stream:
+            for event in stream:
+                if getattr(event, "type", None) != "response.output_text.delta":
+                    continue
+                delta = getattr(event, "delta", "")
+                if delta:
+                    yield delta
+
+            response = stream.get_final_response()
+
+        response_time = time.perf_counter() - start_time
+        self._log_response(prompt, response, response_time)
     
     def _log_response(self, prompt, response, response_time):
         usage = response.usage

@@ -122,10 +122,11 @@ initialize_state()
 
 with st.sidebar:
     st.header("TW3K Assistant")
-    interface = st.radio(
+    interface = st.selectbox(
         "Interface",
-        options=("Chat", "LLM metrics"),
+        options=("Chat", "Metrics Dashboard"),
         index=0,
+        key="interface_view",
     )
 
     if interface == "Chat":

@@ -52,12 +52,12 @@ CONTEXT:
 
 
 class RAGBase:
-    """Coordinate hybrid retrieval, optional reranking, and LLM prompting.
+    """Build and coordinate the default TW3K retrieval pipeline.
 
-    ``index`` is expected to be a ``HybridRetriever`` from ``src``.  The
-    ``bm25_retriever`` and ``qdrant_retriever`` arguments are a convenience for
-    constructing that object in this class.  Keeping ``index`` supported also
-    makes it possible to inject a fake retriever in unit tests.
+    When no index or component retrievers are supplied, the BM25, Qdrant, and
+    hybrid retrievers are constructed automatically. Set ``auto_build=False``
+    for a lightweight instance used only for prompt/context helpers, or pass
+    an index to inject a custom retriever.
     """
 
     def __init__(
@@ -73,14 +73,39 @@ class RAGBase:
         qdrant_retriever: Optional[QdrantRetriever] = None,
         rrf_k: int = 60,
         query_rewriter: Optional[QueryRewriter] = None,
+        collection_name: str = "tw3k_transcripts",
+        qdrant_url: str = "http://localhost:6333",
+        auto_build: bool = True,
+        rerank: Optional[bool] = None,
+        use_query_rewriter: bool = True,
     ) -> None:
         if index is not None and (bm25_retriever is not None or qdrant_retriever is not None):
             raise ValueError("Pass either index or both component retrievers, not both.")
+
+        default_pipeline = False
 
         if index is None and (bm25_retriever is not None or qdrant_retriever is not None):
             if bm25_retriever is None or qdrant_retriever is None:
                 raise ValueError("Both bm25_retriever and qdrant_retriever are required.")
             index = HybridRetriever(bm25_retriever, qdrant_retriever, rrf_k=rrf_k)
+
+        if index is None and bm25_retriever is None and qdrant_retriever is None and auto_build:
+            bm25_retriever = BM25Retriever()
+            qdrant_retriever = QdrantRetriever(
+                collection_name=collection_name,
+                url=qdrant_url,
+            )
+            index = HybridRetriever(bm25_retriever, qdrant_retriever, rrf_k=rrf_k)
+            default_pipeline = True
+
+        if rerank is None:
+            rerank = default_pipeline
+
+        if reranker is None and rerank:
+            reranker = Reranker()
+
+        if query_rewriter is None and use_query_rewriter and llm_client is not None:
+            query_rewriter = QueryRewriter(llm_client)
 
         self.index = index
         self.hybrid_retriever = index
@@ -90,53 +115,6 @@ class RAGBase:
         self.prompt_template = prompt_template
         self.model = model
         self.query_rewriter = query_rewriter
-
-    @classmethod
-    def from_src(
-        cls,
-        *,
-        rerank: bool = True,
-        reranker: Optional[Reranker] = None,
-        collection_name: str = "tw3k_transcripts",
-        qdrant_url: str = "http://localhost:6333",
-        rrf_k: int = 60,
-        llm_client: Any = None,
-        instructions: str = INSTRUCTIONS,
-        prompt_template: str = PROMPT_TEMPLATE,
-        model: str = "gpt-5.4-mini",
-        query_rewriter: Optional[QueryRewriter] = None,
-        use_query_rewriter: bool = True,
-    ) -> "RAGBase":
-        """Build the pipeline from the retrievers implemented in ``src``.
-
-        Reranking and query rewriting are enabled by default. Pass
-        ``rerank=False`` to skip the cross-encoder, or
-        ``use_query_rewriter=False`` to skip the extra query-rewrite call.
-        A custom ``query_rewriter`` takes precedence when supplied.
-        """
-
-        bm25 = BM25Retriever()
-        qdrant = QdrantRetriever(
-            collection_name=collection_name,
-            url=qdrant_url,
-        )
-        hybrid = HybridRetriever(bm25, qdrant, rrf_k=rrf_k)
-
-        if reranker is None and rerank:
-            reranker = Reranker()
-
-        if query_rewriter is None and use_query_rewriter and llm_client is not None:
-            query_rewriter = QueryRewriter(llm_client)
-
-        return cls(
-            index=hybrid,
-            reranker=reranker,
-            llm_client=llm_client,
-            instructions=instructions,
-            prompt_template=prompt_template,
-            model=model,
-            query_rewriter=query_rewriter,
-        )
 
     def hybrid_search(
         self,

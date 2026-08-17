@@ -32,7 +32,7 @@ def test_rag_base_search_with_hybrid_retriever():
 
 
 def test_rag_base_build_context_search_result():
-    app = RAGBase(index=None)
+    app = RAGBase(auto_build=False)
     search_results = [
         SearchResult(
             chunk=DocumentChunk(
@@ -52,7 +52,7 @@ def test_rag_base_build_context_search_result():
 
 
 def test_rag_base_build_context_dict():
-    app = RAGBase(index=None)
+    app = RAGBase(auto_build=False)
     dict_results = [
         {
             "text": "Position archers on the high ground to maximize range and damage.",
@@ -129,7 +129,7 @@ def test_rag_base_rewrites_query_for_retrieval_but_answers_original_query():
     assert response.output_text == "Grounded answer"
 
 
-def test_from_src_configures_query_rewriter_by_default(monkeypatch):
+def test_rag_base_builds_default_pipeline_and_query_rewriter(monkeypatch):
     mock_bm25 = MagicMock()
     mock_qdrant = MagicMock()
     mock_hybrid = MagicMock()
@@ -142,7 +142,7 @@ def test_from_src_configures_query_rewriter_by_default(monkeypatch):
         lambda bm25, qdrant, rrf_k: mock_hybrid,
     )
 
-    app = RAGBase.from_src(rerank=False, llm_client=mock_llm_client)
+    app = RAGBase(rerank=False, llm_client=mock_llm_client)
 
     assert app.query_rewriter is not None
     assert app.query_rewriter.client is mock_llm_client

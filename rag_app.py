@@ -16,7 +16,6 @@ from src.qdrant_retriever import QdrantRetriever
 from src.reranker import Reranker
 from src.schema import SearchResult
 from query_rewriter import QueryRewriter
-from utils import calculate_rag_cost
 
 
 DEFAULT_FETCH_K = 20
@@ -28,19 +27,18 @@ You are an expert AI Assistant specialized in Total War: Three Kingdoms game mec
 ---
 
 ### Context Schema
-The retrieved context will consist of transcript passages from strategy guides and lore videos with the following schema:
-* **`Content`**: The transcript passage text containing advice, mechanics, strategy, or lore.
-* **`video_title`**: Title of the video guide or playthrough.
+The retrieved context will consist of transcript passages from strategy guides and lore videos.
+Use only the passage content to answer the user.
 
 ---
 
 ### Execution Rules
 
-1. **Strict Grounding:** Answer questions using **only** explicit information contained within the provided context (`Content`, `video_title`). Do not extrapolate, infer, or utilize external world knowledge.
+1. **Strict Grounding:** Answer questions using **only** explicit information contained within the provided transcript content. Do not extrapolate, infer, or utilize external world knowledge.
 2. **Rejection Criteria:**
    * If the user query is irrelevant to Total War: Three Kingdoms, warlords, battles, campaign strategy, or game lore, state explicitly: *"This query is outside the scope of the Total War: Three Kingdoms knowledge base."*
 3. **No Hallucinations:** Never fabricate campaign strategies, character traits, faction mechanics, or game statistics not present in the context.
-4. **Formatting:** Present responses clearly and concisely. When available, synthesize information across passages and cite video titles to assist the player.
+4. **Formatting:** Present responses clearly and concisely. Do not include video titles, source IDs, citations, URLs, or external links unless the user explicitly asks for them.
 """.strip()
 
 PROMPT_TEMPLATE = """
@@ -184,7 +182,6 @@ class RAGBase:
                 chunk = result.chunk
                 chunk_lines = [
                     f"--- Document {idx} ---",
-                    f"Video Title: {chunk.metadata.get('video_title', '')}",
                     f"Content: {chunk.content}",
                 ]
                 context_chunks.append("\n".join(chunk_lines))
@@ -193,9 +190,7 @@ class RAGBase:
             # Keep support for dictionary-shaped results used by older callers.
             if isinstance(result, dict):
                 content = result.get("text") or result.get("content") or result.get("desc_1", "")
-                video_title = result.get("video_title") or result.get("name", "")
                 chunk_lines = [f"--- Document {idx} ---", f"Content: {content}"]
-                chunk_lines.insert(1, f"Video Title: {video_title}")
                 context_chunks.append("\n".join(chunk_lines))
                 continue
 

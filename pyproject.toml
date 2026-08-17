@@ -18,7 +18,9 @@ dependencies = [
     "ragas>=0.1.0",
     "rank-bm25>=0.2.2",
     "sentence-transformers>=2.2.0",
+    "streamlit>=1.61.1",
     "tokenizers>=0.22.2",
+    "transformers>=4.41,<5",
     "tqdm>=4.70.0",
 ]
 

@@ -95,7 +95,7 @@ class RAGBase:
     def from_src(
         cls,
         *,
-        rerank: bool = False,
+        rerank: bool = True,
         reranker: Optional[Reranker] = None,
         collection_name: str = "tw3k_transcripts",
         qdrant_url: str = "http://localhost:6333",
@@ -105,12 +105,14 @@ class RAGBase:
         prompt_template: str = PROMPT_TEMPLATE,
         model: str = "gpt-5.4-mini",
         query_rewriter: Optional[QueryRewriter] = None,
+        use_query_rewriter: bool = True,
     ) -> "RAGBase":
         """Build the pipeline from the retrievers implemented in ``src``.
 
-        The cross-encoder is loaded only when ``rerank=True`` or an explicit
-        ``reranker`` is supplied because loading it downloads/initializes a
-        model and is not needed for plain hybrid retrieval.
+        Reranking and query rewriting are enabled by default. Pass
+        ``rerank=False`` to skip the cross-encoder, or
+        ``use_query_rewriter=False`` to skip the extra query-rewrite call.
+        A custom ``query_rewriter`` takes precedence when supplied.
         """
 
         bm25 = BM25Retriever()
@@ -122,6 +124,9 @@ class RAGBase:
 
         if reranker is None and rerank:
             reranker = Reranker()
+
+        if query_rewriter is None and use_query_rewriter and llm_client is not None:
+            query_rewriter = QueryRewriter(llm_client)
 
         return cls(
             index=hybrid,

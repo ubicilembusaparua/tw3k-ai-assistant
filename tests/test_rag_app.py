@@ -129,6 +129,25 @@ def test_rag_base_rewrites_query_for_retrieval_but_answers_original_query():
     assert response.output_text == "Grounded answer"
 
 
+def test_from_src_configures_query_rewriter_by_default(monkeypatch):
+    mock_bm25 = MagicMock()
+    mock_qdrant = MagicMock()
+    mock_hybrid = MagicMock()
+    mock_llm_client = MagicMock()
+
+    monkeypatch.setattr("rag_app.BM25Retriever", lambda: mock_bm25)
+    monkeypatch.setattr("rag_app.QdrantRetriever", lambda **kwargs: mock_qdrant)
+    monkeypatch.setattr(
+        "rag_app.HybridRetriever",
+        lambda bm25, qdrant, rrf_k: mock_hybrid,
+    )
+
+    app = RAGBase.from_src(rerank=False, llm_client=mock_llm_client)
+
+    assert app.query_rewriter is not None
+    assert app.query_rewriter.client is mock_llm_client
+
+
 def test_calculate_rag_cost_from_responses_usage():
     cost = calculate_rag_cost(
         {

@@ -3,18 +3,17 @@ import sys
 from dotenv import load_dotenv
 from rag_app import RAGBase
 from openai import OpenAI
-from query_rewriter import QueryRewriter
 
 from metrics import RAGWithMetrics
 
-def create_assistant(*, rerank: bool = False):
+def create_assistant(*, rerank: bool = True, use_query_rewriter: bool = True):
     load_dotenv()
 
     client = OpenAI()
     return RAGWithMetrics.from_src(
         rerank=rerank,
         llm_client=client,
-        query_rewriter=QueryRewriter(client),
+        use_query_rewriter=use_query_rewriter,
     )
 
 if __name__ == "__main__":

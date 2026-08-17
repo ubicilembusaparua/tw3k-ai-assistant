@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from metrics import RAGWithMetrics
+from db_save import save_conversation
 
 def create_assistant(*, rerank: bool = True, use_query_rewriter: bool = True):
     load_dotenv()
@@ -23,4 +24,5 @@ if __name__ == "__main__":
         query = sys.argv[1]
 
     answer = assistant.rag(query)
-    print(answer)
+    save_conversation(assistant.last_call, query)
+    # print(answer)

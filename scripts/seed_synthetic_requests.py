@@ -17,7 +17,8 @@ if str(ROOT_DIR) not in sys.path:
 from db_init import get_db_connection
 
 
-SYNTHETIC_MODEL = "synthetic-gpt-5.4-mini"
+REQUEST_MODEL = "gpt-5.4-mini"
+SEEDED_QUESTION_PREFIX = "[Synthetic request "
 JUDGE_RELEVANCE = ("RELEVANT", "PARTLY_RELEVANT", "NON_RELEVANT")
 TOPICS = (
     "public order",
@@ -83,7 +84,7 @@ def build_synthetic_requests(
             {
                 "question": question,
                 "answer": answer,
-                "model": SYNTHETIC_MODEL,
+                "model": REQUEST_MODEL,
                 "instructions": "Synthetic request generated for dashboard testing.",
                 "prompt": prompt,
                 "prompt_tokens": prompt_tokens,
@@ -155,9 +156,22 @@ def replace_synthetic_data(count: int = 100, *, seed: int = 42) -> tuple[int, in
         with conn.cursor() as cur:
             # The previous feedback-only seed produced no synthetic marker, so
             # clear the current feedback table as explicitly requested. Any
-            # synthetic conversations from a future rerun are identified by model.
-            cur.execute("DELETE FROM feedback")
-            cur.execute("DELETE FROM conversations WHERE model = %s", (SYNTHETIC_MODEL,))
+            # Seeded conversations use a question prefix as their private
+            # replacement marker; the model label remains the real model name.
+            seeded_question_pattern = f"{SEEDED_QUESTION_PREFIX}%"
+            cur.execute(
+                """
+                DELETE FROM feedback
+                WHERE conversation_id IN (
+                    SELECT id FROM conversations WHERE question LIKE %s
+                )
+                """,
+                (seeded_question_pattern,),
+            )
+            cur.execute(
+                "DELETE FROM conversations WHERE question LIKE %s",
+                (seeded_question_pattern,),
+            )
 
             conversation_ids = []
             for request in request_rows:
@@ -206,9 +220,9 @@ def replace_synthetic_data(count: int = 100, *, seed: int = 42) -> tuple[int, in
                 SELECT COUNT(*), COUNT(DISTINCT question), COUNT(DISTINCT prompt),
                        COUNT(DISTINCT timestamp)
                 FROM conversations
-                WHERE model = %s
+                WHERE question LIKE %s
                 """,
-                (SYNTHETIC_MODEL,),
+                (seeded_question_pattern,),
             )
             request_count, unique_questions, unique_prompts, unique_timestamps = cur.fetchone()
             if (request_count, unique_questions, unique_prompts, unique_timestamps) != (

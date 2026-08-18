@@ -9,3 +9,5 @@ models/
 /dataset_builder/
 /evaluation/results/*.csv
 /evaluation/results/*.json
+AGENTS.md
+_docs/

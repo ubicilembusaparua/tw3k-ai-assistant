@@ -1,4 +1,14 @@
 services:
+  model-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "scripts/download.py"]
+    environment:
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-Xenova/all-MiniLM-L6-v2}
+    volumes:
+      - model_cache:/app/models
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -48,5 +58,6 @@ services:
       retries: 12
 
 volumes:
+  model_cache:
   postgres_data:
   qdrant_storage:

@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import onnxruntime as ort
@@ -17,6 +17,7 @@ ONNX_CANDIDATES = [
     "onnx/encoder_model.onnx",
     "model.onnx",
 ]
+DEFAULT_EMBEDDING_MODEL = "Xenova/all-MiniLM-L6-v2"
 
 
 class Embedder:
@@ -24,11 +25,11 @@ class Embedder:
 
     def __init__(
         self,
-        model_name: str = "Xenova/all-MiniLM-L6-v2",
+        model_name: Optional[str] = None,
         models_dir: Union[str, Path] = "models",
     ):
-        self.model_name = model_name
-        self.dest_dir = Path(models_dir) / model_name
+        self.model_name = model_name or os.getenv("EMBEDDING_MODEL") or DEFAULT_EMBEDDING_MODEL
+        self.dest_dir = Path(models_dir) / self.model_name
         self._ensure_model_downloaded()
 
         tokenizer_path = self.dest_dir / "tokenizer.json"
@@ -46,29 +47,42 @@ class Embedder:
         tokenizer_dest = self.dest_dir / "tokenizer.json"
         model_dest = self.dest_dir / "model.onnx"
 
-        if tokenizer_dest.exists() and model_dest.exists():
+        if (
+            tokenizer_dest.is_file()
+            and tokenizer_dest.stat().st_size > 0
+            and model_dest.is_file()
+            and model_dest.stat().st_size > 0
+        ):
+            logging.info("Reusing complete model files at %s", self.dest_dir)
             return
 
-        files = list_repo_files(repo_id=self.model_name)
-        onnx_file = next((c for c in ONNX_CANDIDATES if c in files), None)
-        if not onnx_file:
-            raise FileNotFoundError(f"No ONNX model candidate found in HF repo {self.model_name}")
+        try:
+            files = list_repo_files(repo_id=self.model_name)
+            onnx_file = next((c for c in ONNX_CANDIDATES if c in files), None)
+            if not onnx_file:
+                raise FileNotFoundError(
+                    f"No ONNX model candidate found in HF repo {self.model_name}"
+                )
 
-        for remote, local in [
-            ("tokenizer.json", "tokenizer.json"),
-            (onnx_file, "model.onnx"),
-        ]:
-            src = hf_hub_download(repo_id=self.model_name, filename=remote)
-            dst = self.dest_dir / local
-            if not dst.exists():
-                shutil.copy2(src, dst)
+            for remote, local in (
+                ("tokenizer.json", tokenizer_dest),
+                (onnx_file, model_dest),
+            ):
+                if local.is_file() and local.stat().st_size > 0:
+                    continue
+                source = hf_hub_download(repo_id=self.model_name, filename=remote)
+                shutil.copy2(source, local)
 
-        onnx_ext = onnx_file + "_data"
-        if onnx_ext in files:
-            src = hf_hub_download(repo_id=self.model_name, filename=onnx_ext)
-            dst = self.dest_dir / "model.onnx_data"
-            if not dst.exists():
-                shutil.copy2(src, dst)
+            onnx_sidecar = onnx_file + "_data"
+            sidecar_dest = self.dest_dir / "model.onnx_data"
+            if onnx_sidecar in files and not sidecar_dest.is_file():
+                source = hf_hub_download(repo_id=self.model_name, filename=onnx_sidecar)
+                shutil.copy2(source, sidecar_dest)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to prepare embedding model {self.model_name!r} "
+                f"in {self.dest_dir}: {exc}"
+            ) from exc
 
     def get_embedding_dimension(self) -> int:
         """Returns embedding vector dimension (384 for MiniLM-L6-v2)."""

@@ -9,6 +9,26 @@ services:
     volumes:
       - model_cache:/app/models
 
+  qdrant-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "ingest_qdrant.py"]
+    environment:
+      DATASET_PATH: /app/tw3k_dataset.jsonl
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-Xenova/all-MiniLM-L6-v2}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-tw3k_transcripts}
+      QDRANT_BATCH_SIZE: ${QDRANT_BATCH_SIZE:-64}
+      QDRANT_FORCE_REINDEX: ${QDRANT_FORCE_REINDEX:-false}
+    volumes:
+      - model_cache:/app/models:ro
+    depends_on:
+      model-init:
+        condition: service_completed_successfully
+      qdrant:
+        condition: service_healthy
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped

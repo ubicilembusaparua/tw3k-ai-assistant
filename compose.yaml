@@ -77,6 +77,37 @@ services:
       timeout: 5s
       retries: 12
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - exec streamlit run app.py --server.address=0.0.0.0 --server.port="$${STREAMLIT_PORT}"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env before starting the app}
+      STREAMLIT_PORT: ${STREAMLIT_PORT:-8501}
+      DATASET_PATH: /app/tw3k_dataset.jsonl
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-Xenova/all-MiniLM-L6-v2}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-tw3k_monitoring}
+      POSTGRES_USER: ${POSTGRES_USER:-tw3k}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-tw3k_transcripts}
+    ports:
+      - "${STREAMLIT_PORT:-8501}:${STREAMLIT_PORT:-8501}"
+    volumes:
+      - model_cache:/app/models:ro
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      qdrant-init:
+        condition: service_completed_successfully
+
 volumes:
   model_cache:
   postgres_data:

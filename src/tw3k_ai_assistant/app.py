@@ -128,6 +128,10 @@ def render_chat() -> None:
 
 initialize_state()
 
+# Warm the cached retrieval pipeline when the Streamlit application starts so
+# the first submitted question does not pay the model-loading cost.
+get_assistant()
+
 with st.sidebar:
     st.header("TW3K Assistant")
     interface = st.selectbox(

@@ -188,7 +188,14 @@ docker compose down
 
 ## Web Interface
 
-_Screenshots to be added:_
+### Chat
 
-1. Chat application
-2. Captured metrics
+Ask questions and receive grounded answers from the TW3K transcript knowledge base.
+
+![TW3K Assistant chat interface](images/streamlit_chat.png)
+
+### Metrics Dashboard
+
+Review request volume, response time, token usage, cost, model usage, and user feedback.
+
+![TW3K Assistant metrics dashboard](images/streamlit_dashboard.png)

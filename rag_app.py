@@ -8,6 +8,7 @@ the complete retrieval flow through :class:`RAGBase`.
 
 from __future__ import annotations
 
+import os
 from typing import Any, Iterator, List, Optional, Sequence
 
 from src.bm25_retriever import BM25Retriever
@@ -71,8 +72,8 @@ class RAGBase:
         qdrant_retriever: Optional[QdrantRetriever] = None,
         rrf_k: int = 60,
         query_rewriter: Optional[QueryRewriter] = None,
-        collection_name: str = "tw3k_transcripts",
-        qdrant_url: str = "http://localhost:6333",
+        collection_name: Optional[str] = None,
+        qdrant_url: Optional[str] = None,
         auto_build: bool = True,
         rerank: Optional[bool] = None,
         use_query_rewriter: bool = True,
@@ -89,9 +90,19 @@ class RAGBase:
 
         if index is None and bm25_retriever is None and qdrant_retriever is None and auto_build:
             bm25_retriever = BM25Retriever()
+            configured_collection = (
+                collection_name
+                or os.getenv("QDRANT_COLLECTION")
+                or "tw3k_transcripts"
+            )
+            configured_url = (
+                qdrant_url
+                or os.getenv("QDRANT_URL")
+                or "http://localhost:6333"
+            )
             qdrant_retriever = QdrantRetriever(
-                collection_name=collection_name,
-                url=qdrant_url,
+                collection_name=configured_collection,
+                url=configured_url,
             )
             index = HybridRetriever(bm25_retriever, qdrant_retriever, rrf_k=rrf_k)
             default_pipeline = True

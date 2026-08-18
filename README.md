@@ -1,120 +1,194 @@
-# TW3K AI Assistant
+# Total War: Three Kingdoms AI Assistant
 
-The assistant answers Total War: Three Kingdoms questions with a local ONNX
-embedding model, Qdrant retrieval, and a Streamlit interface. The repository
-also contains the BM25, dense, and hybrid retrieval components used by the
-evaluation scripts.
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--5.4_mini-412991?logo=openai&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-DC244C?logo=qdrant&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Monitoring-4169E1?logo=postgresql&logoColor=white)
+![ONNX](https://img.shields.io/badge/ONNX-Embeddings-005CED?logo=onnx&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![uv](https://img.shields.io/badge/uv-Package_Manager-DE5FE9?logo=astral&logoColor=white)
 
-## Compose prerequisites
+When playing *Total War: Three Kingdoms* (TW3K) by Creative Assembly, it can be difficult to decide what to do next. I often searched online for tips and guides that would help me play more effectively.
 
-Install Docker Desktop or Docker Engine with the Compose v2 plugin, Git, and
-an OpenAI API key. The first startup needs network access to Hugging Face to
-download the selected ONNX model. Qdrant indexing also runs on the first
-startup and can take several minutes.
+The [Serious Trivia YouTube channel](https://www.youtube.com/channel/UCw64RL17YRZtEbE7gbDltpQ) has many comprehensive TW3K guides, but the videos are long and there are many of them. This inspired me to build a knowledge base from the videos' transcripts and use a large language model (LLM) to answer questions based on the relevant context.
 
-## Start the stack
+The source data comes from another tool that I used to convert several videos from the channel into text stored in JSON Lines (`.jsonl`) format. This application is intended for TW3K players who want an easier way to access that information.
 
-Run these commands from the repository root:
+## Architecture
+
+This retrieval-augmented generation (RAG) application uses the following workflow:
+
+```mermaid
+flowchart LR
+    subgraph Ingestion[Data ingestion]
+        A[YouTube videos] --> B[Transcripts]
+        B --> C[JSONL files]
+        C --> D[ONNX embedder]
+        D --> E[(Qdrant vector database)]
+    end
+
+    subgraph Answering[Question answering]
+        F[User query] --> G[LLM query rewriting]
+        G --> H[Hybrid retrieval]
+        H --> I[BM25 keyword search]
+        H --> E
+        I --> J[Reciprocal rank fusion]
+        E --> J
+        J --> K[Cross-encoder reranker]
+        K --> L[Relevant context]
+        L --> M[OpenAI model]
+        M --> N[Generated answer]
+        N --> O[Streamlit web interface]
+    end
+```
+
+### Data ingestion
+
+1. **Prepare the transcripts:** Convert the selected YouTube videos into text and divide each transcript into smaller passages that can be retrieved independently.
+2. **Store the dataset:** Save the passages and their metadata—such as video, timestamp, and source information—in a JSON Lines (`.jsonl`) file.
+3. **Create embeddings:** Use the ONNX `all-MiniLM-L6-v2` model to transform each passage into a dense vector representing its semantic meaning.
+4. **Build the knowledge base:** The Compose initialization service loads the dataset and indexes the vectors and passage metadata in Qdrant. Existing populated collections are reused unless a rebuild is explicitly requested.
+
+### Question answering
+
+1. **Accept the question:** The user submits a TW3K question through the Streamlit chat interface.
+2. **Rewrite the query:** An LLM turns the question into a clear, standalone search query while preserving important game terminology.
+3. **Retrieve candidates:** BM25 finds passages with matching terms, while Qdrant vector search finds passages with similar meaning.
+4. **Fuse and rerank:** Reciprocal rank fusion combines both result lists, and a cross-encoder reranker selects and orders the most relevant passages.
+5. **Generate a grounded answer:** The selected passages and original question are sent to the OpenAI model, which is instructed to answer only from the retrieved context.
+6. **Return and monitor the response:** Streamlit streams the answer to the user, stores request metrics in PostgreSQL, and allows the user to submit helpful or not-helpful feedback.
+
+## Tech Stack
+
+| Component | Technology |
+| --- | --- |
+| LLM and query rewriting | OpenAI GPT-5.4 mini through the Responses API |
+| Embedding model | Hugging Face `Xenova/all-MiniLM-L6-v2` |
+| Embedding runtime | ONNX Runtime |
+| Lexical retrieval | BM25 with `rank-bm25` |
+| Vector retrieval | Qdrant |
+| Retrieval fusion | Reciprocal Rank Fusion (RRF) |
+| Document reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
+| Retrieval evaluation | Ragas |
+| Web interface and dashboard | Streamlit |
+| Metrics and feedback storage | PostgreSQL with Psycopg |
+| Containerization | Docker and Docker Compose |
+| Package management | uv |
+
+## Retrieval Method
+
+The application evaluates three retrieval strategies:
+
+| Retrieval strategy | Context Precision @5 | Context Recall @5 |
+| --- | :---: | :---: |
+| BM25 lexical search | 0.8429 | 0.4348 |
+| Vector search | 0.7807 | 0.4128 |
+| Hybrid search with reranking | **0.8594** | **0.4262** |
+
+The evaluation compares BM25 lexical search, Qdrant vector search, hybrid reciprocal rank fusion, and hybrid retrieval with reranking. Based on the recorded Ragas results, hybrid retrieval combined with the `cross-encoder-ms-marco-MiniLM-L-6-v2` reranker performs best and is therefore used by the application. The evaluation measures the top five retrieved contexts.
+
+The project does not yet include a comparative evaluation of final LLM answers or prompt variants. The reported results evaluate retrieval quality only.
+
+## LLM Metrics and Monitoring
+
+The application captures operational metrics for every successful LLM request and stores them in PostgreSQL. This provides a persistent record for reviewing usage, performance, cost, and answer quality through the Streamlit dashboard.
+
+The captured data includes:
+
+- The user's question and the generated answer
+- The model, developer instructions, and complete grounded prompt
+- Input, output, and total token counts
+- Response time in seconds
+- Estimated cost per request
+- Request timestamp
+- Optional helpful or not-helpful user feedback
+
+The Streamlit monitoring dashboard includes summary metrics, filters, recent request details, and six charts:
+
+1. Requests per day
+2. Cost per day
+3. Average response time per day
+4. Average tokens per day
+5. Requests by model
+6. Cost by model
+
+### Best Practices
+
+- **Hybrid search:** BM25 lexical and Qdrant vector results are combined using reciprocal rank fusion.
+- **Document reranking:** A cross-encoder reranks the hybrid candidates before context is sent to the LLM.
+- **Query rewriting:** An LLM converts the user's question into a clear, standalone retrieval query.
+
+Additional engineering features include streamed answers, per-request token and cost tracking, persistent conversation history, and idempotent database and vector-index initialization.
+
+## Project Structure
+
+```text
+tw3k-ai-assistant/
+|-- src/tw3k_ai_assistant/ # Application, RAG, retrieval, UI, and database code
+|-- scripts/               # Model download, Qdrant ingestion, and synthetic data tools
+|-- evaluation/            # Retrieval evaluation scripts and recorded results
+|-- notebooks/             # Retrieval experiments
+|-- data/                  # Transcript knowledge-base dataset
+|-- tests/                 # Application and Docker Compose tests
+|-- _docs/                 # Project workflow and team documentation
+|-- compose.yaml           # Complete local application stack
+|-- Dockerfile             # Application container image
+|-- pyproject.toml         # Python project and dependency configuration
+|-- uv.lock                # Locked dependency versions
+`-- README.md              # Project overview and setup instructions
+```
+
+## Setup and Run
+
+### Prerequisites
+
+- Docker Desktop, or Docker Engine with the Compose v2 plugin
+- Git
+- An OpenAI API key
+
+The first startup requires network access to download the ONNX embedding model.
+
+### Start with Docker Compose
+
+Clone the repository and enter the project directory:
+
+```bash
+git clone https://github.com/ubicilembusaparua/tw3k-ai-assistant.git
+cd tw3k-ai-assistant
+```
+
+Create the environment file:
 
 ```bash
 cp .env.example .env
-# Edit .env and replace OPENAI_API_KEY with your key.
+```
+
+Set `OPENAI_API_KEY` in `.env`, then build and start the complete stack:
+
+```bash
 docker compose up --build -d
 ```
 
-On PowerShell, the copy command is `Copy-Item .env.example .env`. The normal
-Compose startup performs the required initialization jobs automatically:
+Compose downloads the embedding model, initializes PostgreSQL, ingests the tracked dataset into Qdrant, and starts Streamlit. Open the application at <http://localhost:8501> and the Qdrant dashboard at <http://localhost:6333/dashboard>.
 
-1. `model-init` downloads or reuses the model in the shared model volume.
-2. `db-init` waits for PostgreSQL health and creates the empty schema.
-3. `qdrant-init` waits for the model and Qdrant health, then indexes the
-   tracked dataset when the collection is empty.
-4. `app` starts Streamlit only after `db-init` and `qdrant-init` succeed.
-
-Streamlit is published on the configured host port, and Qdrant is bound to
-localhost for its dashboard. PostgreSQL remains internal to the Compose
-network. Open `http://localhost:${STREAMLIT_PORT}` for the app or `http://localhost:6333/dashboard` for Qdrant.
-The default `STREAMLIT_PORT` is `8501`.
-
-## Inspect and diagnose
+Inspect service status and logs with:
 
 ```bash
 docker compose ps
-docker compose logs -f model-init
-docker compose logs -f db-init
-docker compose logs -f qdrant-init
 docker compose logs -f app
-docker compose logs -f postgres
-docker compose logs -f qdrant
+docker compose logs -f qdrant-init
 ```
 
-The initialization jobs must finish successfully. If one fails, inspect its
-service-specific log before retrying; the app dependency graph prevents a
-failed initialization from looking like a healthy application.
-
-## Stop, persist, and reset
+Stop the services while retaining the database, vectors, and model cache:
 
 ```bash
 docker compose down
 ```
 
-`docker compose down` stops the services but retains the named PostgreSQL,
-Qdrant, and model volumes. A later `docker compose up -d` reuses those files
-and vectors; normal startup skips indexing for a populated collection.
+## Web Interface
 
-To intentionally remove all application data and cached model files:
+_Screenshots to be added:_
 
-```bash
-docker compose down -v
-```
-
-WARNING: `down -v` is destructive. It removes the named volumes, including
-conversation/feedback data, Qdrant vectors, and the downloaded model cache.
-Use it only with data that can be recreated.
-
-## Force a vector rebuild
-
-After changing data/tw3k_dataset.jsonl, keep the stack running and run:
-
-```bash
-docker compose run --rm --no-deps -e QDRANT_FORCE_REINDEX=true qdrant-init
-```
-
-This explicitly deletes and recreates the configured Qdrant collection, then
-indexes the current dataset. The temporary `-e` override does not change the
-normal `QDRANT_FORCE_REINDEX=false` setting in `.env`; subsequent ordinary
-startup returns to skip behavior for a populated collection.
-
-## Optional synthetic dashboard data
-
-The application schema must already have initialized successfully. Synthetic
-requests and feedback are optional demo data and are never created by normal
-startup:
-
-```bash
-docker compose exec app python -m scripts.seed_synthetic_requests --replace
-```
-
-The `--replace` flag intentionally replaces prior synthetic rows. Do not run
-this command when the dashboard should remain empty.
-
-## Local development
-
-```bash
-uv sync
-uv run pytest
-uv run streamlit run src/tw3k_ai_assistant/app.py
-```
-
-The local Streamlit command uses the same application modules; configure the
-`POSTGRES_*`, `QDRANT_*`, `EMBEDDING_MODEL`, and `OPENAI_API_KEY` values in a
-local, ignored `.env` when external services are required.
-
-## Project layout
-
-- src/tw3k_ai_assistant/ contains the installable application package.
-- database/ contains PostgreSQL access and schema initialization.
-- retrieval/ contains BM25, Qdrant, embedding, hybrid, and reranking code.
-- rag/ and ui/ contain application orchestration and Streamlit views.
-- scripts/ contains Compose initialization and maintenance commands.
-- evaluation/, data/, and notebooks/ contain supporting project assets.
+1. Chat application
+2. Captured metrics

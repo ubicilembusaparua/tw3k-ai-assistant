@@ -1,0 +1,19 @@
+.env
+.env.*
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.pytest-tmp-rewriter/
+.coverage
+htmlcov/
+.git/
+.gitignore
+.uv-cache/
+models/
+dataset_builder/
+_evaluation/results/
+
+# Keep the tracked transcript dataset in the build context.
+!tw3k_dataset.jsonl

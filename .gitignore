@@ -7,4 +7,3 @@ __pycache__/
 htmlcov/
 models/
 /dataset_builder/
-/tw3k_dataset.jsonl

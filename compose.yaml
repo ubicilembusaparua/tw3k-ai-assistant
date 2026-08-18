@@ -1,4 +1,34 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tw3k_monitoring}
+      POSTGRES_USER: ${POSTGRES_USER:-tw3k}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "db_init.py"]
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-tw3k_monitoring}
+      POSTGRES_USER: ${POSTGRES_USER:-tw3k}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: tw3k_qdrant
@@ -9,4 +39,5 @@ services:
       - qdrant_storage:/qdrant/storage
 
 volumes:
+  postgres_data:
   qdrant_storage:

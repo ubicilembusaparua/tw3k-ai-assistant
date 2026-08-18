@@ -2,25 +2,19 @@
 
 import csv
 import json
-import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-# Add root directory to sys.path if running from within _evaluation
-root_dir = Path(__file__).resolve().parent.parent
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
-
-from src.dataset import load_dataset
-from src.bm25_retriever import BM25Retriever
-from src.qdrant_retriever import QdrantRetriever
-from src.hybrid_retriever import HybridRetriever
-from src.reranker import Reranker
-from _evaluation.evaluation import RagasEvaluator, save_summary_csv
+from evaluation.evaluator import RagasEvaluator, save_summary_csv
+from tw3k_ai_assistant.retrieval.bm25 import BM25Retriever
+from tw3k_ai_assistant.retrieval.dataset import load_dataset
+from tw3k_ai_assistant.retrieval.hybrid import HybridRetriever
+from tw3k_ai_assistant.retrieval.qdrant import QdrantRetriever
+from tw3k_ai_assistant.retrieval.reranker import Reranker
 
 
 def load_eval_benchmark() -> List[Dict[str, Any]]:
-    """Loads benchmark evaluation samples from _evaluation/results/eval_dataset.csv or .json."""
+    """Load benchmark samples from evaluation/results/eval_dataset.csv or .json."""
     eval_dir = Path(__file__).resolve().parent / "results"
     csv_file = eval_dir / "eval_dataset.csv"
     json_file = eval_dir / "eval_dataset.json"
@@ -36,7 +30,7 @@ def load_eval_benchmark() -> List[Dict[str, Any]]:
             return json.load(f)
     else:
         print("Benchmark file not found. Generating default 35-query dataset...")
-        from _evaluation.generate_eval_dataset import main as gen_main
+        from evaluation.generate_eval_dataset import main as gen_main
         gen_main()
         with open(json_file, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -48,8 +42,8 @@ def main():
     print("==================================================\n")
 
     # 1. Load transcript dataset
-    chunks = load_dataset("tw3k_dataset.jsonl")
-    print(f"Loaded {len(chunks)} document chunks from tw3k_dataset.jsonl.\n")
+    chunks = load_dataset("data/tw3k_dataset.jsonl")
+    print(f"Loaded {len(chunks)} document chunks from data/tw3k_dataset.jsonl.\n")
 
     # 2. Instantiate Retrievers & Re-ranker
     print("Building BM25 Lexical Retriever...")
@@ -121,8 +115,8 @@ def main():
         print(f"  - Context Precision @5 : {prec:.4f}")
         print(f"  - Context Recall @5    : {rec:.4f}")
 
-    # 6. Save summary metrics into _evaluation/results/search_evals.csv
-    csv_path = save_summary_csv(all_metrics, output_path="_evaluation/results/search_evals.csv")
+    # 6. Save summary metrics into evaluation/results/search_evals.csv
+    csv_path = save_summary_csv(all_metrics, output_path="evaluation/results/search_evals.csv")
     print(f"\nSUCCESS: Summary metrics saved to {csv_path.resolve()}")
 
 

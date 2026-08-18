@@ -1,13 +1,13 @@
 import sys
 
-from dotenv import load_dotenv
 from openai import OpenAI
 
-from metrics import RAGWithMetrics
-from db_save import save_conversation
+from tw3k_ai_assistant.config import load_environment
+from tw3k_ai_assistant.database.saves import save_conversation
+from tw3k_ai_assistant.rag.metrics import RAGWithMetrics
 
 def create_assistant(*, rerank: bool = True, use_query_rewriter: bool = True):
-    load_dotenv()
+    load_environment()
 
     client = OpenAI()
     return RAGWithMetrics(

@@ -13,7 +13,7 @@ htmlcov/
 .uv-cache/
 models/
 dataset_builder/
-_evaluation/results/
+evaluation/results/
 
 # Keep the tracked transcript dataset in the build context.
-!tw3k_dataset.jsonl
+!data/tw3k_dataset.jsonl

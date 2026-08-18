@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Collection, Optional, Sequence
 
-from db_query import ConversationMetric
+from tw3k_ai_assistant.database.queries import ConversationMetric
 
 
 @dataclass(frozen=True)

@@ -4,17 +4,12 @@ from __future__ import annotations
 
 import argparse
 import random
-import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-from db_init import get_db_connection
+from tw3k_ai_assistant.config import load_environment
+from tw3k_ai_assistant.database.initialization import get_db_connection
 
 
 REQUEST_MODEL = "gpt-5.4-mini"
@@ -254,7 +249,7 @@ def main() -> None:
     if not args.replace:
         raise SystemExit("Refusing to modify data without --replace")
 
-    load_dotenv(ROOT_DIR / ".env")
+    load_environment(ROOT_DIR / ".env")
     requests, feedback = replace_synthetic_data(count=args.count, seed=args.seed)
     print(f"Seeded {requests} synthetic requests and {feedback} feedback rows.")
 

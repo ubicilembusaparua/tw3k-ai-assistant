@@ -6,14 +6,17 @@ from datetime import date
 
 import streamlit as st
 
-from dashboard_utils import (
+from tw3k_ai_assistant.database.queries import (
+    ConversationMetric,
+    get_conversation_metrics,
+)
+from tw3k_ai_assistant.ui.dashboard_utils import (
     daily_metrics,
     filter_records,
     model_metrics,
     recent_rows,
     summarize_records,
 )
-from db_query import ConversationMetric, get_conversation_metrics
 
 
 @st.cache_data(ttl=30, show_spinner=False)

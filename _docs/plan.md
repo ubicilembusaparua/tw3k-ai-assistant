@@ -9,11 +9,11 @@ runtime dependencies.
 - Automatically download the ONNX embedding model on first startup.
 - Automatically initialize Qdrant when its collection is empty.
 - Automatically initialize the PostgreSQL schema with empty tables.
-- Track `tw3k_dataset.jsonl` in Git and include it in the application image.
+- Track `data/tw3k_dataset.jsonl` in Git and include it in the application image.
 - Keep `dataset_builder` ignored and outside the Docker build context.
 - Persist PostgreSQL data, Qdrant data, and the ONNX model cache in named volumes.
-- Expose only the Streamlit application to the host; keep databases on the
-  internal Compose network.
+- Expose Streamlit and bind Qdrant's dashboard to localhost; keep PostgreSQL
+  internal to the Compose network.
 - Keep synthetic dashboard data out of normal startup.
 - Do not add Python dependencies without approval; use the existing `uv.lock`.
 
@@ -39,7 +39,7 @@ model-init --completed --> qdrant --healthy --> qdrant-init --completed --/
 
 ### One-shot initialization services
 
-- **`model-init`**: Reuse the project image and run `scripts/download.py`.
+- **`model-init`**: Reuse the project image and run `scripts/download_model.py`.
   Mount the shared model volume at `/app/models`. The script must remain
   idempotent and download `Xenova/all-MiniLM-L6-v2` only when its files are
   missing.
@@ -53,14 +53,14 @@ model-init --completed --> qdrant --healthy --> qdrant-init --completed --/
 
 ### Phase 1: Container build and repository inputs
 
-- [ ] Remove `/tw3k_dataset.jsonl` from `.gitignore`; retain the
+- [ ] Keep `/data/tw3k_dataset.jsonl` tracked; retain the
   `/dataset_builder/` ignore rule.
 - [ ] Add a `.dockerignore` that excludes secrets, virtual environments,
   caches, generated models, and `dataset_builder`, while retaining the tracked
   dataset.
 - [ ] Add a `Dockerfile` using the existing Python/`uv` project configuration.
   Install from `uv.lock` and do not add dependencies.
-- [ ] Copy the application source, scripts, and `tw3k_dataset.jsonl` into the
+- [ ] Copy the application source, scripts, and `data/tw3k_dataset.jsonl` into the
   image. Keep model files in the runtime volume rather than baking them into
   the image.
 - [ ] Run the application as a non-root user where supported by the chosen
@@ -74,8 +74,8 @@ model-init --completed --> qdrant --healthy --> qdrant-init --completed --/
 - [ ] Add named volumes for PostgreSQL data, Qdrant storage, and ONNX models.
 - [ ] Add health checks and `depends_on` conditions so the app cannot start
   before both initialization jobs succeed.
-- [ ] Publish only the configured Streamlit port. Keep PostgreSQL and Qdrant
-  ports internal by default.
+- [ ] Publish the configured Streamlit port and bind Qdrant's dashboard to
+  localhost. Keep PostgreSQL internal to the Compose network.
 - [ ] Pin database image versions instead of using floating `latest` tags.
 
 ### Phase 3: Configuration and initialization behavior
@@ -92,7 +92,7 @@ model-init --completed --> qdrant --healthy --> qdrant-init --completed --/
   `docker compose up` must not rebuild an existing collection.
 - [ ] Change external Qdrant connection failures to fail clearly instead of
   silently falling back to an in-memory client in the containerized path.
-- [ ] Make `db_init.py` idempotent, including `CREATE TABLE IF NOT EXISTS` and
+- [ ] Make `tw3k_ai_assistant.database.initialization` idempotent, including `CREATE TABLE IF NOT EXISTS` and
   safe repeated feedback-table initialization.
 - [ ] Keep `scripts/seed_synthetic_requests.py` as an explicit, documented
   opt-in operation only.

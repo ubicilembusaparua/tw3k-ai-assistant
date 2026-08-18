@@ -7,3 +7,5 @@ __pycache__/
 htmlcov/
 models/
 /dataset_builder/
+/evaluation/results/*.csv
+/evaluation/results/*.json

@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM python:3.12-slim
 
 # The project lockfile, rather than a floating pip resolution, is the source
@@ -7,7 +9,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.12.5 /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     PATH="/app/.venv/bin:${PATH}" \
-    PYTHONPATH=/app \
+    PYTHONPATH=/app/src \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
@@ -22,7 +24,8 @@ RUN apt-get update \
 # The lock file contains the complete dependency graph.  The application uses
 # CPU inference, so omit the CUDA distributions selected by that graph and
 # install the same locked torch version from the CPU wheel index.
-RUN uv sync --locked --no-dev --no-install-project \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev --no-install-project \
     --no-install-package torch \
     --no-install-package cuda-bindings \
     --no-install-package cuda-pathfinder \
@@ -57,4 +60,4 @@ COPY --chown=appuser:appuser . .
 
 USER appuser
 
-CMD ["streamlit", "run", "app.py"]
+CMD ["streamlit", "run", "src/tw3k_ai_assistant/app.py"]

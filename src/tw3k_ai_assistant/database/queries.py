@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from db_init import get_db_connection
-from metrics import LLMCallRecord
+from tw3k_ai_assistant.database.initialization import get_db_connection
+from tw3k_ai_assistant.rag.metrics import LLMCallRecord
 
 @dataclass
 class Stats:

@@ -4766,19 +4766,13 @@ name = "tw3k-ai-assistant"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "datasets" },
     { name = "huggingface-hub" },
-    { name = "langchain" },
-    { name = "langchain-community" },
-    { name = "langchain-core" },
-    { name = "langchain-openai" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "onnxruntime" },
     { name = "openai" },
     { name = "psycopg", extra = ["binary"] },
     { name = "qdrant-client" },
-    { name = "ragas" },
     { name = "rank-bm25" },
     { name = "sentence-transformers" },
     { name = "streamlit" },
@@ -4789,24 +4783,24 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "datasets" },
     { name = "jupyter" },
+    { name = "langchain" },
+    { name = "langchain-community" },
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
     { name = "pytest" },
+    { name = "ragas" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "datasets", specifier = ">=2.14.0" },
     { name = "huggingface-hub", specifier = ">=0.20.0" },
-    { name = "langchain", specifier = ">=0.3.0" },
-    { name = "langchain-community", specifier = ">=0.3.0" },
-    { name = "langchain-core", specifier = ">=0.3.0" },
-    { name = "langchain-openai", specifier = ">=0.2.0" },
     { name = "numpy", specifier = ">=1.24.0" },
     { name = "onnxruntime", specifier = ">=1.28.0" },
     { name = "openai", specifier = ">=1.0.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.4" },
     { name = "qdrant-client", specifier = ">=1.9.0" },
-    { name = "ragas", specifier = ">=0.1.0" },
     { name = "rank-bm25", specifier = ">=0.2.2" },
     { name = "sentence-transformers", specifier = ">=2.2.0" },
     { name = "streamlit", specifier = ">=1.61.1" },
@@ -4817,8 +4811,14 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "datasets", specifier = ">=2.14.0" },
     { name = "jupyter", specifier = ">=1.1.1" },
+    { name = "langchain", specifier = ">=0.3.0" },
+    { name = "langchain-community", specifier = ">=0.3.0" },
+    { name = "langchain-core", specifier = ">=0.3.0" },
+    { name = "langchain-openai", specifier = ">=0.2.0" },
     { name = "pytest", specifier = ">=8.0.0" },
+    { name = "ragas", specifier = ">=0.1.0" },
 ]
 
 [[package]]

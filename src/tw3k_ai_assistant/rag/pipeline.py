@@ -11,12 +11,12 @@ from __future__ import annotations
 import os
 from typing import Any, Iterator, List, Optional, Sequence
 
-from src.bm25_retriever import BM25Retriever
-from src.hybrid_retriever import HybridRetriever
-from src.qdrant_retriever import QdrantRetriever
-from src.reranker import Reranker
-from src.schema import SearchResult
-from query_rewriter import QueryRewriter
+from tw3k_ai_assistant.rag.query_rewriter import QueryRewriter
+from tw3k_ai_assistant.retrieval.bm25 import BM25Retriever
+from tw3k_ai_assistant.retrieval.hybrid import HybridRetriever
+from tw3k_ai_assistant.retrieval.qdrant import QdrantRetriever
+from tw3k_ai_assistant.retrieval.reranker import Reranker
+from tw3k_ai_assistant.retrieval.schema import SearchResult
 
 
 DEFAULT_FETCH_K = 20
@@ -153,7 +153,7 @@ class RAGBase:
         results: Sequence[SearchResult],
         top_k: int = 5,
     ) -> List[SearchResult]:
-        """Apply the ``src.Reranker`` cross-encoder when one is configured."""
+        """Apply the retrieval reranker when one is configured."""
 
         if top_k <= 0 or not results:
             return []

@@ -6,13 +6,13 @@ from types import SimpleNamespace
 
 import pytest
 
-import db_init
-import ingest_qdrant
-from scripts import download as download_script
+from scripts import download_model as download_script
+from scripts import ingest_qdrant
+from tw3k_ai_assistant.database import initialization as db_init
 
 
-qdrant_module = importlib.import_module("src.qdrant_retriever")
-embedder_module = importlib.import_module("src.embedder")
+qdrant_module = importlib.import_module("tw3k_ai_assistant.retrieval.qdrant")
+embedder_module = importlib.import_module("tw3k_ai_assistant.retrieval.embedder")
 
 
 class FakeEmbedder:

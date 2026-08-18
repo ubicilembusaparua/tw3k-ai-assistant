@@ -1,17 +1,9 @@
 """Side-by-side RAG Retrieval Evaluation (Top 10 Results) pulling existing vectors from Qdrant DB."""
 
-import sys
-from pathlib import Path
-
-# Add root directory to sys.path if running from within _evaluation
-root_dir = Path(__file__).resolve().parent.parent
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
-
-from src.dataset import load_dataset
-from src.bm25_retriever import BM25Retriever
-from src.qdrant_retriever import QdrantRetriever
-from src.hybrid_retriever import HybridRetriever
+from tw3k_ai_assistant.retrieval.bm25 import BM25Retriever
+from tw3k_ai_assistant.retrieval.dataset import load_dataset
+from tw3k_ai_assistant.retrieval.hybrid import HybridRetriever
+from tw3k_ai_assistant.retrieval.qdrant import QdrantRetriever
 
 
 def main():
@@ -20,8 +12,8 @@ def main():
     print("==================================================\n")
 
     # 1. Load dataset for BM25
-    print("Loading transcript chunks from tw3k_dataset.jsonl...")
-    chunks = load_dataset("tw3k_dataset.jsonl")
+    print("Loading transcript chunks from data/tw3k_dataset.jsonl...")
+    chunks = load_dataset("data/tw3k_dataset.jsonl")
     print(f"Loaded {len(chunks)} transcript chunks.\n")
 
     # 2. Initialize BM25 Lexical Retriever directly from dataset

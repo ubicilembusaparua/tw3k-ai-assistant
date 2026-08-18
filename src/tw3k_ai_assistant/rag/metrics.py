@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Iterator
 
-from rag_app import RAGBase
+from tw3k_ai_assistant.rag.pipeline import RAGBase
 
 @dataclass
 class LLMCallRecord:

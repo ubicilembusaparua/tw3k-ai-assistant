@@ -1,21 +1,20 @@
+x-application-image: &application-image
+  image: tw3k-ai-assistant:local
+
 services:
   model-init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["python", "scripts/download.py"]
+    <<: *application-image
+    command: ["python", "-m", "scripts.download_model"]
     environment:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-Xenova/all-MiniLM-L6-v2}
     volumes:
       - model_cache:/app/models
 
   qdrant-init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["python", "ingest_qdrant.py"]
+    <<: *application-image
+    command: ["python", "-m", "scripts.ingest_qdrant"]
     environment:
-      DATASET_PATH: /app/tw3k_dataset.jsonl
+      DATASET_PATH: /app/data/tw3k_dataset.jsonl
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-Xenova/all-MiniLM-L6-v2}
       QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
       QDRANT_COLLECTION: ${QDRANT_COLLECTION:-tw3k_transcripts}
@@ -45,10 +44,8 @@ services:
       retries: 12
 
   db-init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["python", "db_init.py"]
+    <<: *application-image
+    command: ["python", "-m", "tw3k_ai_assistant.database.initialization"]
     environment:
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
@@ -63,6 +60,9 @@ services:
     image: qdrant/qdrant:v1.18.3
     volumes:
       - qdrant_storage:/qdrant/storage
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
     healthcheck:
       test:
         - CMD
@@ -78,6 +78,7 @@ services:
       retries: 12
 
   app:
+    <<: *application-image
     build:
       context: .
       dockerfile: Dockerfile
@@ -85,11 +86,11 @@ services:
     command:
       - sh
       - -c
-      - exec streamlit run app.py --server.address=0.0.0.0 --server.port="$${STREAMLIT_PORT}"
+      - exec streamlit run src/tw3k_ai_assistant/app.py --server.address=0.0.0.0 --server.port="$${STREAMLIT_PORT}"
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env before starting the app}
       STREAMLIT_PORT: ${STREAMLIT_PORT:-8501}
-      DATASET_PATH: /app/tw3k_dataset.jsonl
+      DATASET_PATH: /app/data/tw3k_dataset.jsonl
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-Xenova/all-MiniLM-L6-v2}
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}

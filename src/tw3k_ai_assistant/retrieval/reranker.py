@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sentence_transformers import CrossEncoder
-from src.schema import SearchResult
+from tw3k_ai_assistant.retrieval.schema import SearchResult
 
 
 class Reranker:

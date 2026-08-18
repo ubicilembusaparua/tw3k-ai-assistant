@@ -1,5 +1,5 @@
 from datetime import datetime
-from db_init import get_db_connection, DB_TIMEZONE
+from tw3k_ai_assistant.database.initialization import DB_TIMEZONE, get_db_connection
 
 def save_conversation(record, question):
     timestamp = datetime.now(DB_TIMEZONE)

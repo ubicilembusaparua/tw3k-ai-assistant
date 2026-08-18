@@ -1,8 +1,8 @@
 import re
 from typing import List, Optional, Sequence
 from rank_bm25 import BM25Okapi
-from src.schema import DocumentChunk, SearchResult
-from src.dataset import load_dataset
+from tw3k_ai_assistant.retrieval.dataset import load_dataset
+from tw3k_ai_assistant.retrieval.schema import DocumentChunk, SearchResult
 
 class BM25Retriever:
     """Lexical keyword-based retrieval using BM25Okapi."""

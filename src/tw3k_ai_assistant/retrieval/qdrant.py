@@ -6,8 +6,8 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 from tqdm.auto import tqdm
 
-from src.embedder import Embedder
-from src.schema import DocumentChunk, SearchResult
+from tw3k_ai_assistant.retrieval.embedder import Embedder
+from tw3k_ai_assistant.retrieval.schema import DocumentChunk, SearchResult
 
 
 DEFAULT_QDRANT_URL = "http://localhost:6333"

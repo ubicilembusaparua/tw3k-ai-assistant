@@ -6,7 +6,7 @@ Description: Create the smallest project structure needed for the test runner, i
 
 ## 2. Build a reproducible application image
 Goal: Make the tracked dataset and application dependencies available in a deterministic Docker image.
-Description: Remove `tw3k_dataset.jsonl` from `.gitignore`, retain the `dataset_builder` ignore rule, and add `.dockerignore` rules for secrets, environments, caches, and generated models. Add a `Dockerfile` that installs from `uv.lock`, copies the application source, scripts, and dataset, and defines a stable working directory.
+Description: Keep `data/tw3k_dataset.jsonl` tracked, retain the `dataset_builder` ignore rule, and add `.dockerignore` rules for secrets, environments, caches, and generated models. Add a `Dockerfile` that installs from `uv.lock`, copies the application source, scripts, and dataset, and defines a stable working directory.
 
 ## 3. Define the container environment contract
 Goal: Document the environment variables required by the application and Compose services.
@@ -14,7 +14,7 @@ Description: Add a safe `.env.example` covering the OpenAI key, Streamlit port, 
 
 ## 4. Add PostgreSQL and automatic schema initialization
 Goal: Start a persistent PostgreSQL service and create the application schema automatically.
-Description: Add a pinned PostgreSQL service with environment-based credentials, a named data volume, and a `pg_isready` health check, then make `db_init.py` safe to run repeatedly without deleting existing data. Add the one-shot `db-init` service so it waits for PostgreSQL readiness, creates empty conversations and feedback tables, and reports initialization failures clearly.
+Description: Add a pinned PostgreSQL service with environment-based credentials, a named data volume, and a `pg_isready` health check, then make `tw3k_ai_assistant.database.initialization` safe to run repeatedly without deleting existing data. Add the one-shot `db-init` service so it waits for PostgreSQL readiness, creates empty conversations and feedback tables, and reports initialization failures clearly.
 
 ## 5. Add Qdrant and explicit application connectivity
 Goal: Run Qdrant as a durable internal service and make connection failures visible.
@@ -22,11 +22,11 @@ Description: Add a pinned Qdrant service with a named storage volume and an imag
 
 ## 6. Add automatic ONNX model preparation
 Goal: Make the selected ONNX embedder available automatically to ingestion and the application.
-Description: Make `scripts/download.py` and the embedder configuration accept a model setting while defaulting to `Xenova/all-MiniLM-L6-v2`, and verify that downloads are idempotent under `models/<model-name>`. Add a one-shot `model-init` service that mounts a named volume at `/app/models` and completes before any service that needs the model starts.
+Description: Make `scripts/download_model.py` and the embedder configuration accept a model setting while defaulting to `Xenova/all-MiniLM-L6-v2`, and verify that downloads are idempotent under `models/<model-name>`. Add a one-shot `model-init` service that mounts a named volume at `/app/models` and completes before any service that needs the model starts.
 
 ## 7. Add idempotent Qdrant initialization and reindexing
 Goal: Populate an empty Qdrant collection automatically while providing an explicit rebuild workflow.
-Description: Update `ingest_qdrant.py` to read the Qdrant URL, collection, batch size, and force-reindex setting, skipping an existing collection by default. Add `qdrant-init` so ingestion waits for `model-init` and a healthy Qdrant service, then document a force-enabled command for rebuilding vectors after dataset changes.
+Description: Update `scripts/ingest_qdrant.py` to read the Qdrant URL, collection, batch size, and force-reindex setting, skipping an existing collection by default. Add `qdrant-init` so ingestion waits for `model-init` and a healthy Qdrant service, then document a force-enabled command for rebuilding vectors after dataset changes.
 
 ## 8. Start the application with the complete Compose dependency graph
 Goal: Start Streamlit only after PostgreSQL and Qdrant initialization have succeeded.

@@ -1,7 +1,7 @@
 from typing import Dict, List
-from src.bm25_retriever import BM25Retriever
-from src.qdrant_retriever import QdrantRetriever
-from src.schema import DocumentChunk, SearchResult
+from tw3k_ai_assistant.retrieval.bm25 import BM25Retriever
+from tw3k_ai_assistant.retrieval.qdrant import QdrantRetriever
+from tw3k_ai_assistant.retrieval.schema import DocumentChunk, SearchResult
 
 
 class HybridRetriever:

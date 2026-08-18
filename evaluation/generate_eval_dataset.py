@@ -1,9 +1,9 @@
-"""Generates a 35-query benchmark evaluation dataset (_evaluation/results/eval_dataset.json & .csv) for human ground data evaluation."""
+"""Generate a 35-query benchmark in evaluation/results for human review."""
 
 import csv
 import json
 from pathlib import Path
-from src.dataset import load_dataset
+from tw3k_ai_assistant.retrieval.dataset import load_dataset
 
 
 def main():
@@ -11,7 +11,7 @@ def main():
     print(" Generating 35-Query Evaluation Dataset")
     print("==================================================\n")
 
-    chunks = load_dataset("tw3k_dataset.jsonl")
+    chunks = load_dataset("data/tw3k_dataset.jsonl")
     print(f"Loaded {len(chunks)} transcript passages.")
 
     # 35 benchmark evaluation queries with ground truths mapped from transcript content
@@ -228,7 +228,7 @@ def main():
         },
     ]
 
-    output_dir = Path("_evaluation/results")
+    output_dir = Path("evaluation/results")
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "eval_dataset.json"
     csv_path = output_dir / "eval_dataset.csv"

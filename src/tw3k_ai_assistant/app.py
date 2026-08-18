@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from assistant import create_assistant
-from dashboard import render_dashboard
-from db_feedback import save_feedback
-from db_save import save_conversation
+from tw3k_ai_assistant.assistant import create_assistant
+from tw3k_ai_assistant.database.feedback import save_feedback
+from tw3k_ai_assistant.database.saves import save_conversation
+from tw3k_ai_assistant.ui.dashboard import render_dashboard
 
 
 st.set_page_config(

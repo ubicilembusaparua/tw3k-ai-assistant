@@ -1,10 +1,15 @@
 import json
 from pathlib import Path
 from typing import List, Union
-from src.schema import DocumentChunk
+from tw3k_ai_assistant.retrieval.schema import DocumentChunk
 
 
-def load_dataset(filepath: Union[str, Path] = "tw3k_dataset.jsonl") -> List[DocumentChunk]:
+DEFAULT_DATASET_PATH = Path("data/tw3k_dataset.jsonl")
+
+
+def load_dataset(
+    filepath: Union[str, Path] = DEFAULT_DATASET_PATH,
+) -> List[DocumentChunk]:
     """Loads Total War: Three Kingdoms transcript passages from JSONL file."""
     path = Path(filepath)
     if not path.exists():

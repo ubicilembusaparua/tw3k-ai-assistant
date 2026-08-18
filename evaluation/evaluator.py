@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datasets import Dataset
-from src.schema import SearchResult
+from tw3k_ai_assistant.retrieval.schema import SearchResult
 
 
 class RagasEvaluator:
@@ -165,7 +165,7 @@ class RagasEvaluator:
 
 def save_summary_csv(
     eval_results: List[Dict[str, Any]],
-    output_path: str = "_evaluation/results/search_evals.csv",
+    output_path: str = "evaluation/results/search_evals.csv",
 ) -> Path:
     """Saves retriever summary evaluation metrics into a CSV file."""
     path = Path(output_path)

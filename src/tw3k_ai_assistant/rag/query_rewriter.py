@@ -1,5 +1,8 @@
-from dotenv import load_dotenv
-load_dotenv()
+from tw3k_ai_assistant.config import load_environment
+
+
+load_environment()
+
 from openai import OpenAI
 
 REWRITE_INSTRUCTIONS = """

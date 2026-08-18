@@ -31,9 +31,10 @@ Compose startup performs the required initialization jobs automatically:
    tracked dataset when the collection is empty.
 4. `app` starts Streamlit only after `db-init` and `qdrant-init` succeed.
 
-Only Streamlit is published to the host. PostgreSQL and Qdrant remain on the
-internal Compose network. Open `http://localhost:${STREAMLIT_PORT}` in a
-browser; the default `STREAMLIT_PORT` is `8501`.
+Streamlit is published on the configured host port, and Qdrant is bound to
+localhost for its dashboard. PostgreSQL remains internal to the Compose
+network. Open `http://localhost:${STREAMLIT_PORT}` for the app or `http://localhost:6333/dashboard` for Qdrant.
+The default `STREAMLIT_PORT` is `8501`.
 
 ## Inspect and diagnose
 
@@ -73,7 +74,7 @@ Use it only with data that can be recreated.
 
 ## Force a vector rebuild
 
-After changing `tw3k_dataset.jsonl`, keep the stack running and run:
+After changing data/tw3k_dataset.jsonl, keep the stack running and run:
 
 ```bash
 docker compose run --rm --no-deps -e QDRANT_FORCE_REINDEX=true qdrant-init
@@ -91,7 +92,7 @@ requests and feedback are optional demo data and are never created by normal
 startup:
 
 ```bash
-docker compose exec app python scripts/seed_synthetic_requests.py --replace
+docker compose exec app python -m scripts.seed_synthetic_requests --replace
 ```
 
 The `--replace` flag intentionally replaces prior synthetic rows. Do not run
@@ -102,9 +103,18 @@ this command when the dashboard should remain empty.
 ```bash
 uv sync
 uv run pytest
-uv run streamlit run app.py
+uv run streamlit run src/tw3k_ai_assistant/app.py
 ```
 
 The local Streamlit command uses the same application modules; configure the
 `POSTGRES_*`, `QDRANT_*`, `EMBEDDING_MODEL`, and `OPENAI_API_KEY` values in a
 local, ignored `.env` when external services are required.
+
+## Project layout
+
+- src/tw3k_ai_assistant/ contains the installable application package.
+- database/ contains PostgreSQL access and schema initialization.
+- retrieval/ contains BM25, Qdrant, embedding, hybrid, and reranking code.
+- rag/ and ui/ contain application orchestration and Streamlit views.
+- scripts/ contains Compose initialization and maintenance commands.
+- evaluation/, data/, and notebooks/ contain supporting project assets.

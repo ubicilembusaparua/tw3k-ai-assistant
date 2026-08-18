@@ -7,15 +7,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
 
-from src.dataset import load_dataset
-from src.qdrant_retriever import QdrantRetriever
+from tw3k_ai_assistant.retrieval.dataset import load_dataset
+from tw3k_ai_assistant.retrieval.qdrant import QdrantRetriever
 
 
 DEFAULT_QDRANT_URL = "http://localhost:6333"
 DEFAULT_QDRANT_COLLECTION = "tw3k_transcripts"
 DEFAULT_QDRANT_BATCH_SIZE = 64
 DEFAULT_QDRANT_FORCE_REINDEX = False
-DEFAULT_DATASET_PATH = "tw3k_dataset.jsonl"
+DEFAULT_DATASET_PATH = "data/tw3k_dataset.jsonl"
 
 TRUE_VALUES = frozenset({"1", "true", "t", "yes", "y", "on"})
 FALSE_VALUES = frozenset({"0", "false", "f", "no", "n", "off"})

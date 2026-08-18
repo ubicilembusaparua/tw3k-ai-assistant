@@ -1,72 +1,141 @@
-# RAG Application Implementation Tasks (LangChain Integration)
+# Docker Compose Isolation Plan
 
-This document outlines the step-by-step task breakdown for building a production-grade RAG (Retrieval-Augmented Generation) application using LangChain, leveraging the existing custom retrieval pipeline (BM25, Qdrant Vector, Hybrid RRF, and Cross-Encoder Reranker).
+This plan containerizes the existing Streamlit RAG application and its local
+runtime dependencies.
 
----
+## Agreed Scope
 
-## Task Breakdown
+- Run the Streamlit app, PostgreSQL, and Qdrant through Docker Compose.
+- Automatically download the ONNX embedding model on first startup.
+- Automatically initialize Qdrant when its collection is empty.
+- Automatically initialize the PostgreSQL schema with empty tables.
+- Track `tw3k_dataset.jsonl` in Git and include it in the application image.
+- Keep `dataset_builder` ignored and outside the Docker build context.
+- Persist PostgreSQL data, Qdrant data, and the ONNX model cache in named volumes.
+- Expose only the Streamlit application to the host; keep databases on the
+  internal Compose network.
+- Keep synthetic dashboard data out of normal startup.
+- Do not add Python dependencies without approval; use the existing `uv.lock`.
 
-### Phase 1: Environment & Dependency Specifications
-- [ ] **Task 1.1: Request & Add Dependencies in `pyproject.toml`**
-  - Prompt user for approval to add `langchain`, `langchain-core`, `langchain-community`, and `langchain-openai` (or chosen provider) into `pyproject.toml`.
-  - Run `uv sync` to update virtual environment and lockfile.
-- [ ] **Task 1.2: Environment Configuration & Secret Management**
-  - Update `.env` template with required keys (`OPENAI_API_KEY`, `OPENAI_MODEL_NAME`, `QDRANT_URL`, `QDRANT_API_KEY`).
-  - Configure robust configuration loading (e.g. fallback defaults, validation).
+## Target Compose Architecture
 
----
+The services should start in this order:
 
-### Phase 2: Custom LangChain Retriever Adapter (`src/langchain_retriever.py`)
-- [ ] **Task 2.1: Implement Custom LangChain Retriever Class**
-  - Create `Tw3kLangChainRetriever` subclassing `langchain_core.retrievers.BaseRetriever`.
-  - Wrap existing `HybridRetriever` and optional `Reranker` pipeline.
-  - Implement `_get_relevant_documents(query: str, *, run_manager=None) -> List[Document]`.
-  - Map internal `SearchResult` / `DocumentChunk` data models into `langchain_core.documents.Document` with metadata (source ID, title, score, rank).
-- [ ] **Task 2.2: Unit Tests for LangChain Retriever Adapter**
-  - Create `tests/test_langchain_retriever.py`.
-  - Test `_get_relevant_documents` returning expected LangChain `Document` objects.
-  - Verify metadata preservation and error handling (empty queries, missing documents).
+```text
+postgres --healthy --> db-init --completed --\
+                                             \
+                                              app
+model-init --completed --> qdrant --healthy --> qdrant-init --completed --/
+```
 
----
+### Runtime services
 
-### Phase 3: LangChain LCEL RAG Chain (`src/rag_chain.py`)
-- [ ] **Task 3.1: Define System & Context Prompt Templates**
-  - Create structured prompt template (`ChatPromptTemplate`) instructing the LLM to strictly base answers on retrieved context.
-  - Include strict formatting rules for source citations and fallback when context is insufficient.
-- [ ] **Task 3.2: Implement LCEL Chain Construction (`build_rag_chain`)**
-  - Construct runnable chain using LangChain Expression Language (LCEL):
-    `retriever | format_docs | prompt | llm | StrOutputParser()`
-  - Implement document formatting helper function `format_docs(docs: List[Document]) -> str`.
-  - Return formatted response along with source document metadata.
-- [ ] **Task 3.3: Multi-turn Conversation & History Support**
-  - Support chat memory / history using `RunnableWithMessageHistory` or history-aware retriever chain (`create_history_aware_retriever`).
-  - Handle query contextualization for multi-turn dialogues.
+- **`app`**: Build the project image and run Streamlit on `0.0.0.0`. It must
+  depend on successful completion of `db-init` and `qdrant-init`.
+- **`postgres`**: Run a pinned PostgreSQL image with a named data volume and a
+  `pg_isready` health check. It is reachable by the application as `postgres`.
+- **`qdrant`**: Run a pinned Qdrant image with a named storage volume and an
+  HTTP health check. It is reachable by the application as `qdrant`.
 
----
+### One-shot initialization services
 
-### Phase 4: Main Application Interface & CLI (`src/app.py` & `main.py`)
-- [ ] **Task 4.1: Implement High-level RAG Application Class (`src/app.py`)**
-  - Build `RAGApp` class orchestrating retriever selection (BM25, Vector, Hybrid, Hybrid+Rerank), LLM initialization, and chain invocation.
-  - Provide `.answer(query: str, session_id: Optional[str] = None)` method returning answer string and source document list.
-- [ ] **Task 4.2: Implement Interactive CLI Entry Point (`main.py`)**
-  - Build CLI for interactive Q&A session with options to select retriever mode, top-k documents, and view source citations.
+- **`model-init`**: Reuse the project image and run `scripts/download.py`.
+  Mount the shared model volume at `/app/models`. The script must remain
+  idempotent and download `Xenova/all-MiniLM-L6-v2` only when its files are
+  missing.
+- **`qdrant-init`**: Wait for `model-init` and a healthy Qdrant service, then
+  run the ingestion script against `http://qdrant:6333`. The default behavior
+  must skip indexing when `tw3k_transcripts` already contains points.
+- **`db-init`**: Wait for a healthy PostgreSQL service, then run the existing
+  database initialization code. Schema creation must be safe to repeat.
 
----
+## Implementation Phases
 
-### Phase 5: Testing, Evaluation & Documentation
-- [ ] **Task 5.1: Unit & Integration Test Suite (`tests/test_rag_chain.py`)**
-  - Write test cases using `FakeListChatModel` or mock responses to run fast pytest suites without calling live external LLM APIs.
-  - Verify chain output structure, context handling, and memory state retention.
-- [ ] **Task 5.2: End-to-End RAGAS Evaluation Integration**
-  - Extend `_evaluation/evaluate_ragas.py` to evaluate the generated answers against ground-truth datasets using Faithfulness and Answer Relevance metrics.
-- [ ] **Task 5.3: Update Project Documentation (`README.md`)**
-  - Update `README.md` with instructions on running the LangChain RAG application and CLI.
+### Phase 1: Container build and repository inputs
 
----
+- [ ] Remove `/tw3k_dataset.jsonl` from `.gitignore`; retain the
+  `/dataset_builder/` ignore rule.
+- [ ] Add a `.dockerignore` that excludes secrets, virtual environments,
+  caches, generated models, and `dataset_builder`, while retaining the tracked
+  dataset.
+- [ ] Add a `Dockerfile` using the existing Python/`uv` project configuration.
+  Install from `uv.lock` and do not add dependencies.
+- [ ] Copy the application source, scripts, and `tw3k_dataset.jsonl` into the
+  image. Keep model files in the runtime volume rather than baking them into
+  the image.
+- [ ] Run the application as a non-root user where supported by the chosen
+  base image.
+
+### Phase 2: Compose services, networking, and persistence
+
+- [ ] Replace the Qdrant-only Compose definition with the complete service
+  graph: `app`, `postgres`, `qdrant`, `model-init`, `qdrant-init`, and
+  `db-init`.
+- [ ] Add named volumes for PostgreSQL data, Qdrant storage, and ONNX models.
+- [ ] Add health checks and `depends_on` conditions so the app cannot start
+  before both initialization jobs succeed.
+- [ ] Publish only the configured Streamlit port. Keep PostgreSQL and Qdrant
+  ports internal by default.
+- [ ] Pin database image versions instead of using floating `latest` tags.
+
+### Phase 3: Configuration and initialization behavior
+
+- [ ] Add a safe `.env.example` documenting the required OpenAI, PostgreSQL,
+  application-port, Qdrant, and embedding-model settings. Never commit real
+  secrets.
+- [ ] Make the application read `QDRANT_URL`, `QDRANT_COLLECTION`, and the
+  embedding model setting from the environment, using Compose service names
+  rather than `localhost`.
+- [ ] Make ingestion read the Qdrant collection, batch size, and reindex flag
+  from configuration. Default `QDRANT_FORCE_REINDEX` to false.
+- [ ] Add an explicit reindex workflow for dataset changes. Normal
+  `docker compose up` must not rebuild an existing collection.
+- [ ] Change external Qdrant connection failures to fail clearly instead of
+  silently falling back to an in-memory client in the containerized path.
+- [ ] Make `db_init.py` idempotent, including `CREATE TABLE IF NOT EXISTS` and
+  safe repeated feedback-table initialization.
+- [ ] Keep `scripts/seed_synthetic_requests.py` as an explicit, documented
+  opt-in operation only.
+
+### Phase 4: Application image and operational documentation
+
+- [ ] Configure the app command to bind Streamlit to `0.0.0.0` and the
+  configured container port.
+- [ ] Document first startup, logs, stopping, persistent-volume behavior, and
+  the explicit reindex and synthetic-data commands.
+- [ ] Document that the first startup requires network access to Hugging Face
+  and may take time while the ONNX model and Qdrant vectors are prepared.
+- [ ] Document `docker compose down` versus `docker compose down -v`; the
+  latter intentionally removes application data and cached models.
+
+### Phase 5: Validation
+
+- [ ] Run `uv run pytest` before and after the container changes.
+- [ ] Validate the file with `docker compose config`.
+- [ ] Build and start from a clean checkout with `docker compose up --build`.
+- [ ] Verify that the first run downloads the model, creates the database
+  schema, indexes Qdrant, and makes Streamlit available.
+- [ ] Restart the stack and verify that model download and Qdrant indexing are
+  skipped when the persisted data already exists.
+- [ ] Verify the explicit reindex path and confirm that the application waits
+  for it to complete.
+- [ ] Verify that PostgreSQL and Qdrant data survive a normal `down` and are
+  removed only with the volume-removal workflow.
 
 ## Acceptance Criteria
 
-1. **Clean Integration**: Seamless wrapping of existing `HybridRetriever` / `Reranker` into LangChain standard `BaseRetriever`.
-2. **Deterministic Tests**: 100% of test suite in `tests/` passes via `uv run pytest` without requiring external API keys.
-3. **Reproducible Environment**: Dependencies defined in `pyproject.toml` managed via `uv`.
-4. **Git Compliance**: All changes cleanly committed in accordance with repository rules.
+1. A user with Docker, the tracked repository, and a configured OpenAI key can
+   start the complete application with one Compose command.
+2. No manual model-download, database-init, or Qdrant-ingestion command is
+   required on first startup.
+3. Repeated startup is safe and does not re-embed an existing Qdrant
+   collection unless reindexing is explicitly requested.
+4. The ONNX embedder is loaded from the shared model volume by both ingestion
+   and the application.
+5. PostgreSQL tables are created automatically and remain empty unless the
+   optional synthetic-data command is run.
+6. The application uses Compose service names and does not silently use
+   in-memory Qdrant data after a connection failure.
+7. The existing test suite passes and `dataset_builder` remains ignored.
+
+---
